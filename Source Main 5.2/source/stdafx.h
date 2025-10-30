@@ -80,7 +80,7 @@
 //client
 #include "_define.h"
 #include "_enum.h"
-#include "_types.h"
+#include "GameTypes.h"
 #include "_struct.h"
 #include "w_WindowMessageHandler.h"
 #include "_GlobalFunctions.h"

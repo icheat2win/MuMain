@@ -5,6 +5,22 @@ This is my special fork of the Season 5.2 client sources [uploaded by Luois](htt
 The ultimate goal is to clean it up and make it compatible and feature complete
 to Season 6 Episode 3.
 
+## 🎉 Now Cross-Platform!
+
+This fork includes a complete **cross-platform build system** supporting:
+- ✅ **Windows 11** (x86/x64)
+- ✅ **Linux** (x86_64/ARM64)
+- ✅ **macOS** (Intel/Apple Silicon)
+
+**NEW:** GLFW window abstraction implemented and ready to test!
+
+### Documentation
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
+- **[BUILD.md](BUILD.md)** - Detailed build instructions
+- **[CROSSPLATFORM.md](CROSSPLATFORM.md)** - Architecture overview
+- **[MIGRATION.md](MIGRATION.md)** - How to migrate Windows code
+- **[GLFW_IMPLEMENTATION.md](GLFW_IMPLEMENTATION.md)** - GLFW window system (NEW!)
+
 What I have done so far:
   * 🔥 The framerate has been increased.
     * By default, it uses V-Sync without fps limit. If V-Sync is not
@@ -52,15 +68,67 @@ What needs to be done for Season 6:
 
 ## How to build & run
 
-It requires:
-  * Visual Studio 2022 with the newest update, workloads for C++ and C#
-  * A compatible server: [OpenMU](https://github.com/MUnique/OpenMU).
+### Quick Start (Windows)
 
-Because of the integrated C# code, you need to publish the ManagedLibrary first
-to the debug output folder of the main.exe, so that the DLL is built with Native AOT.
-A simple build is not enough in this case, however the publish just needs to be done once.
+**New: CMake Build System** 🎉
 
-It supports the common starting parameters `/u` and `/p`, example: `main.exe connect /u192.168.0.20 /p55902`.
+The project now includes a cross-platform CMake build system that simplifies building:
+
+```cmd
+# Using the automated build script (recommended)
+build-windows.bat
+
+# Or using PowerShell
+.\build-windows.ps1
+```
+
+See **[BUILD.md](BUILD.md)** for detailed build instructions for Windows, Linux, and macOS.
+
+### Requirements
+
+  * **Visual Studio 2022** with the newest update, workloads for C++ and C#
+  * **.NET 9 SDK** with Native AOT support
+  * **CMake 3.25+** (for new build system)
+  * **Boost 1.75.0** (install at `C:\Libraries\boost_1_75_0` or specify path)
+  * A compatible server: [OpenMU](https://github.com/MUnique/OpenMU)
+
+### Building
+
+**Option 1: Automated Build (Easiest)**
+
+Run from Developer Command Prompt for VS 2022:
+
+```cmd
+build-windows.bat --config Release
+```
+
+**Option 2: Manual CMake Build**
+
+```cmd
+mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A Win32
+cmake --build . --config Release
+```
+
+**Option 3: Original Visual Studio Solution**
+
+The original `Main.sln` is still available in `Source Main 5.2/`. Note: You must manually publish the C# library first:
+
+```cmd
+cd ClientLibrary
+dotnet publish -c Release -r win-x86 --self-contained -p:PublishAot=true
+```
+
+### Running
+
+The CMake build automatically handles the C# library compilation. After building:
+
+```cmd
+cd build/bin/Release
+main.exe
+```
+
+It supports the common starting parameters `/u` and `/p`, example: `main.exe /u192.168.0.20 /p55902`.
 The [OpenMU launcher](https://github.com/MUnique/OpenMU/releases/download/v0.8.17/MUnique.OpenMU.ClientLauncher_0.8.17.zip)
 will work as well. By default, it connects to localhost and port `44406`.
 The client identifies itself with Version `2.04d` and serial `k1Pk2jcET48mxL3b`.

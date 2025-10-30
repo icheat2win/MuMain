@@ -1,5 +1,10 @@
 #pragma once
 
+// Include dependencies needed by this header
+#include <string>
+#include <map>
+#include <cstdint>
+
 typedef float vec_t;
 typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
@@ -39,4 +44,22 @@ typedef std::string		STRING;
 typedef wchar_t* PWCHAR;
 typedef wchar_t			WCHAR;
 typedef std::wstring	WSTRING;
-typedef std::map<eBuffState, DWORD>    BuffStateMap;
+
+// Forward declarations for types that may not be available yet
+#ifndef DWORD
+    #ifdef _WIN32
+        typedef unsigned long DWORD;
+    #else
+        typedef uint32_t DWORD;
+    #endif
+#endif
+
+// BuffStateMap depends on eBuffState which is defined elsewhere
+// Only define it if eBuffState is available
+#ifdef __cplusplus
+    // Forward declare eBuffState if not already declared
+    #ifndef _BUFF_STATE_ENUM_DEFINED
+        enum class eBuffState;
+    #endif
+    typedef std::map<eBuffState, DWORD>    BuffStateMap;
+#endif
