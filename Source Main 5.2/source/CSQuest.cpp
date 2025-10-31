@@ -11,6 +11,7 @@
 #include "zzzscene.h"
 #include "zzzInterface.h"
 #include "zzzinventory.h"
+#include <algorithm>
 
 #include "CSQuest.h"
 #include "GIPetManager.h"
@@ -216,7 +217,7 @@ void CSQuest::setQuestList(int index, int result)
 {
     m_byCurrQuestIndex = index;
 
-    m_byCurrQuestIndexWnd = max(index, m_byCurrQuestIndexWnd);
+    m_byCurrQuestIndexWnd = static_cast<BYTE>(std::max<int>(index, static_cast<int>(m_byCurrQuestIndexWnd)));
 
     int questIndex = (int)(m_byCurrQuestIndex / 4);
     m_byQuestList[questIndex] = result;

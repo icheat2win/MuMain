@@ -1,5 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "CBTMessageBox.h"
+
+#if PLATFORM_WINDOWS
 
 int leaf::CBTMessageBox(HWND hWnd, const std::wstring& text, const std::wstring& caption, UINT uType, bool bAlwaysOnTop)
 {
@@ -124,3 +126,5 @@ LRESULT CALLBACK CCBTMessageBox::CBTProc(INT nCode, WPARAM wParam, LPARAM lParam
 
     return 0;
 }
+
+#endif

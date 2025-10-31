@@ -32,7 +32,8 @@ http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/n4820.pdf
 // Various feature test macros
 
 #ifndef TCB_SPAN_NAMESPACE_NAME
-#define TCB_SPAN_NAMESPACE_NAME std
+#define TCB_SPAN_NAMESPACE_NAME tcb
+#define TCB_SPAN_USING_TCB_NAMESPACE
 #endif
 
 #if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
@@ -614,5 +615,12 @@ public:
 };
 
 } // end namespace std
+
+#ifdef TCB_SPAN_USING_TCB_NAMESPACE
+namespace std {
+using ::TCB_SPAN_NAMESPACE_NAME::dynamic_extent;
+using ::TCB_SPAN_NAMESPACE_NAME::span;
+}
+#endif
 
 #endif // TCB_SPAN_HPP_INCLUDED

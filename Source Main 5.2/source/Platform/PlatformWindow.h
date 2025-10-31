@@ -94,6 +94,9 @@ namespace Platform
         void Show();
         void Hide();
 
+        // Focus state
+        bool IsFocused() const;
+
     private:
         WindowHandle m_Handle;
         int m_Width;

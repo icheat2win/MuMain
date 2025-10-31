@@ -146,7 +146,13 @@ void SEASON3B::CNewKeyInput::ScanAsyncKeyState()
 
     for (int key = 0; key < 256; key++)
     {
-        if (HIBYTE(GetAsyncKeyState(key)) & 0x80)
+#if PLATFORM_WINDOWS
+        bool isDown = (HIBYTE(GetAsyncKeyState(key)) & 0x80) != 0;
+#else
+        bool isDown = Platform::Input::IsKeyDown(static_cast<Platform::KeyCode>(key));
+#endif
+
+        if (isDown)
         {
             if (m_pInputInfo[key].byKeyState == KEY_NONE || m_pInputInfo[key].byKeyState == KEY_RELEASE)
             {

@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/asgerhulgaard/Documents/GitHub/MuMain/build/cmake_install.cmake",
+		"/Users/asgerhulgaard/Documents/GitHub/MuMain/build/ClientLibrary/cmake_install.cmake",
+		"/Users/asgerhulgaard/Documents/GitHub/MuMain/build/Source Main 5.2/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

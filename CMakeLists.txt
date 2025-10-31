@@ -80,8 +80,17 @@ if(BUILD_MAIN_EXECUTABLE)
 endif()
 
 # Installation
-install(TARGETS main
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
+if(PLATFORM_MACOS)
+    install(TARGETS main
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        BUNDLE DESTINATION .
+    )
+else()
+    install(TARGETS main
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+endif()

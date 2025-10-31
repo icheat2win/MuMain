@@ -6,7 +6,6 @@
 
 #include <codecvt>
 #include <locale>
-#include <shlwapi.h>
 
 #include "GlobalBitmap.h"
 
@@ -39,7 +38,10 @@ void CLoadData::AccessModel(int Type, wchar_t* Dir, wchar_t* FileName, int i)
 
     Success = Models[Type].Open2(Dir, Name);
 
-    if (Success == false && (wcscmp(FileName, L"Monster") == NULL || wcscmp(FileName, L"Player") == NULL || wcscmp(FileName, L"PlayerTest") == NULL || wcscmp(FileName, L"Angel") == NULL))
+    if (Success == false && (wcscmp(FileName, L"Monster") == 0 ||
+        wcscmp(FileName, L"Player") == 0 ||
+        wcscmp(FileName, L"PlayerTest") == 0 ||
+        wcscmp(FileName, L"Angel") == 0))
     {
         wchar_t Text[256];
         swprintf(Text, L"%s file does not exist.", Name);

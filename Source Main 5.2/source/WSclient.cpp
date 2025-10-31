@@ -48,8 +48,8 @@
 #include "SkillManager.h"
 
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
-#include "GameShop\InGameShopSystem.h"
-#include "GameShop\MsgBoxIGSCommon.h"
+#include "GameShop/InGameShopSystem.h"
+#include "GameShop/MsgBoxIGSCommon.h"
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
 
 #include "w_MapHeaders.h"

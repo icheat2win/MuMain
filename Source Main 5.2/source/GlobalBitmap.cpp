@@ -647,7 +647,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
 
         pNewBitmap->BitmapIndex = uiBitmapIndex;
 
-        filename._Copy_s(pNewBitmap->FileName, MAX_BITMAP_FILE_NAME, MAX_BITMAP_FILE_NAME);
+        wstring_copy_to_buffer(filename, pNewBitmap->FileName, MAX_BITMAP_FILE_NAME);
 
         pNewBitmap->Width = static_cast<float>(textureWidth);
         pNewBitmap->Height = static_cast<float>(textureHeight);
@@ -746,7 +746,7 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
 
     pNewBitmap->BitmapIndex = uiBitmapIndex;
 
-    filename._Copy_s(pNewBitmap->FileName, MAX_BITMAP_FILE_NAME, MAX_BITMAP_FILE_NAME);
+    wstring_copy_to_buffer(filename, pNewBitmap->FileName, MAX_BITMAP_FILE_NAME);
 
     pNewBitmap->Width = (float)Width;
     pNewBitmap->Height = (float)Height;

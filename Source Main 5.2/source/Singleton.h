@@ -6,6 +6,8 @@
 #ifndef __SINGLETON_H__
 #define __SINGLETON_H__
 
+#include <cstdint>
+
 /*+++++++++++++++++++++++++++++++++++++
     CLASS.
 +++++++++++++++++++++++++++++++++++++*/
@@ -19,8 +21,9 @@ public:
     {
         if (_Singleton == 0)
         {
-            int offset = (int)(T*)1 - (int)(Singleton <T>*)(T*)1;
-            _Singleton = (T*)((int)this + offset);
+            std::intptr_t offset = reinterpret_cast<std::intptr_t>(static_cast<T*>(reinterpret_cast<void*>(1))) -
+                                  reinterpret_cast<std::intptr_t>(static_cast<Singleton<T>*>(reinterpret_cast<void*>(1)));
+            _Singleton = reinterpret_cast<T*>(reinterpret_cast<std::intptr_t>(this) + offset);
         }
     }
 

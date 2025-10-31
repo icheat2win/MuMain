@@ -5,7 +5,9 @@
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 
+#if PLATFORM_WINDOWS
 #include <dpapi.h>
+#endif
 #include <clocale>
 #include "UIWindows.h"
 #include "UIManager.h"
@@ -918,6 +920,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLin
     m_nColorDepth = 0;
     m_RememberMe = 0;
 
+#if PLATFORM_WINDOWS
     HKEY hKey;
     DWORD dwDisp;
     DWORD dwSize;
@@ -994,6 +997,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLin
         g_strSelectedML = g_aszMLSelection;
     }
     RegCloseKey(hKey);
+#else
+    g_iChatInputType = 1;
+    g_bUseWindowMode = FALSE;
+    wcscpy(g_aszMLSelection, L"Eng");
+    g_strSelectedML = g_aszMLSelection;
+#endif
 
     switch (m_Resolution)
     {

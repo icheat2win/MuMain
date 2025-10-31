@@ -122,8 +122,9 @@ int main(int argc, char* argv[])
 
     while (window->IsOpen() && !GameCore::ShouldQuit())
     {
-        // Process window events
+        // Process window events and update input state
         window->ProcessEvents();
+        Platform::Input::Update();
 
         // TODO: Get real delta time from Platform::Time
         float currentTime = frameCount * 0.016f; // Fake 60 FPS for now

@@ -16,6 +16,7 @@
 #include "zzzLodTerrain.h"
 #include "CSWaterTerrain.h"
 #include "MapManager.h"
+#include <algorithm>
 
 extern  double   WorldTime;
 extern  float   TerrainMappingAlpha[TERRAIN_SIZE * TERRAIN_SIZE];
@@ -243,10 +244,10 @@ void    CSWaterTerrain::calcBaseWave(void)
         int HeroY = ( Hero->Object.Position[1]/TERRAIN_SCALE )*2;
     */
 
-    int StartX = max(0, HeroX - (VIEW_WATER_GRID / 2));
-    int StartY = max(0, HeroY - (VIEW_WATER_GRID / 2));
-    int EndX = min(WATER_TERRAIN_SIZE, HeroX + (VIEW_WATER_GRID / 2));
-    int EndY = min(WATER_TERRAIN_SIZE, HeroY + (VIEW_WATER_GRID / 2));
+    int StartX = std::max(0, HeroX - (VIEW_WATER_GRID / 2));
+    int StartY = std::max(0, HeroY - (VIEW_WATER_GRID / 2));
+    int EndX = std::min(WATER_TERRAIN_SIZE, HeroX + (VIEW_WATER_GRID / 2));
+    int EndY = std::min(WATER_TERRAIN_SIZE, HeroY + (VIEW_WATER_GRID / 2));
     for (int i = StartY; i < EndY; i++)        //  y
     {
         for (int j = StartX; j < EndX; j++)    //  x

@@ -59,7 +59,7 @@ typedef std::wstring	WSTRING;
 #ifdef __cplusplus
     // Forward declare eBuffState if not already declared
     #ifndef _BUFF_STATE_ENUM_DEFINED
-        enum class eBuffState;
+        enum eBuffState;
     #endif
     typedef std::map<eBuffState, DWORD>    BuffStateMap;
 #endif

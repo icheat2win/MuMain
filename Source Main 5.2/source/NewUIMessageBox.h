@@ -199,7 +199,7 @@ namespace SEASON3B
         };
         template <class T>
 
-        T* NewMessageBox(TContainer<T>& _container)
+        T* NewMessageBox(TContainer<T>&& _container)
         {
             T* pObj = _container.GetInstance();
             m_listMsgBoxes.push_back(pObj);
@@ -305,12 +305,12 @@ namespace SEASON3B
 
         template <class T>
 
-        T* NewMessageBox(CNewUIMessageBoxFactory::TContainer<T>& container)
+        T* NewMessageBox(CNewUIMessageBoxFactory::TContainer<T>&& container)
         {
             T* pMsgBox = NULL;
             if (m_pMsgBoxFactory)
             {
-                pMsgBox = m_pMsgBoxFactory->NewMessageBox(container);
+                pMsgBox = m_pMsgBoxFactory->NewMessageBox(std::move(container));
                 m_vecMsgBoxes.push_back(pMsgBox);
             }
             return pMsgBox;
@@ -387,7 +387,7 @@ namespace SEASON3B
     };
 
     template <class _L>
-    bool CreateMessageBox(TMsgBoxLayoutContainer<_L>& container)
+    bool CreateMessageBox(TMsgBoxLayoutContainer<_L>&& container)
     {
         if (false == container.Create()) //. MessageBox Layout
             return false;
@@ -395,7 +395,7 @@ namespace SEASON3B
         return container.SetLayout();
     }
     template <class _L, class _M>
-    bool CreateMessageBox(TMsgBoxLayoutContainer<_L>& container, _M** ppMsgBox)
+    bool CreateMessageBox(TMsgBoxLayoutContainer<_L>&& container, _M** ppMsgBox)
     {
         if (false == container.Create()) //. MessageBox Layout
             return false;

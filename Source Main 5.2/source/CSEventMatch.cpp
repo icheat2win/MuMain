@@ -175,7 +175,7 @@ void CSDevilSquareMatch::SetMatchGameCommand(const LPPRECEIVE_MATCH_GAME_STATE d
 
 void CSDevilSquareMatch::RenderMatchResult(void)
 {
-    int xPos[6] = { m_PosResult.x, };
+    int xPos[6] = { static_cast<int>(m_PosResult.x), };
     xPos[1] = xPos[0] + 15;
     xPos[2] = xPos[1] + 15;
     xPos[3] = xPos[2] + 60;

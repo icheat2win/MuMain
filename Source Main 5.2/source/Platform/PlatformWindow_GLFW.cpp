@@ -269,6 +269,17 @@ namespace Platform
         }
     }
 
+    bool Window::IsFocused() const
+    {
+        if (!m_Handle)
+        {
+            return false;
+        }
+
+        int focused = glfwGetWindowAttrib(static_cast<GLFWwindow*>(m_Handle), GLFW_FOCUSED);
+        return focused == GLFW_TRUE;
+    }
+
     // WindowManager implementation
     namespace WindowManager
     {

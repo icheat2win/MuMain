@@ -2,6 +2,7 @@
 
 #include "Platform.h"
 #include "PlatformWindow.h"
+#include "PlatformInput.h"
 #include <cstdio>
 #include <cstring>
 
@@ -66,6 +67,12 @@ namespace Platform
         printf("Platform: %s\n", GetPlatformName());
         printf("Executable Directory: %s\n", s_ExecutableDirectory);
 
+        if (!Input::Initialize())
+        {
+            fprintf(stderr, "Failed to initialize input system\n");
+            return false;
+        }
+
         // Initialize window manager
         if (!WindowManager::Initialize())
         {
@@ -81,7 +88,8 @@ namespace Platform
     {
         printf("Shutting down Platform Layer...\n");
 
-        // Shutdown window manager
+        // Shutdown input and window manager
+        Input::Shutdown();
         WindowManager::Shutdown();
 
         printf("Platform Layer shut down\n");

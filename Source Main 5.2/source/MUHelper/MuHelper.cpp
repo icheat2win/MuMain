@@ -884,7 +884,7 @@ namespace MUHelper
                 Hero->Path.Lock.lock();
 
                 // Limit movement to 2 steps at a time
-                int pathNum = min(tempPath.PathNum, 2);
+                int pathNum = std::min<int>(static_cast<int>(tempPath.PathNum), 2);
                 for (int i = 0; i < pathNum; i++)
                 {
                     Hero->Path.PathX[i] = tempPath.PathX[i];

@@ -459,8 +459,11 @@ bool SEASON3B::CNewUIButton::Render(bool RendOption)
 
             if (m_IsTopPos) y = m_Pos.y - (Fontsize.cy + 2);
 
+#ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
             RenderText(m_TooltipText.c_str(), x + m_iMoveTextTipPosX, y + m_iMoveTextTipPosY, Fontsize.cx + 6, 0, m_hToolTipFont, m_TooltipTextColor, RGBA(0, 0, 0, 180), RT3_SORT_CENTER);
-            //RenderText( m_TooltipText.c_str(), x, y, Fontsize.cx+6, 0, m_hToolTipFont, m_TooltipTextColor, RGBA(0, 0, 0, 180), RT3_SORT_CENTER );
+#else
+            RenderText(m_TooltipText.c_str(), x, y, Fontsize.cx + 6, 0, m_hToolTipFont, m_TooltipTextColor, RGBA(0, 0, 0, 180), RT3_SORT_CENTER);
+#endif
         }
     }
 

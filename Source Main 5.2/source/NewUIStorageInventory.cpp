@@ -11,7 +11,7 @@
 #include "ZzzInventory.h"
 
 #ifdef KJH_PBG_ADD_INGAMESHOP_SYSTEM
-#include "GameShop\MsgBoxIGSCommon.h"
+#include "GameShop/MsgBoxIGSCommon.h"
 #endif // KJH_PBG_ADD_INGAMESHOP_SYSTEM
 
 using namespace SEASON3B;

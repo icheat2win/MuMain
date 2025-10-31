@@ -1,7 +1,9 @@
 #ifndef __UICONTROL_H__
 #define __UICONTROL_H__
 
+#include "stdafx.h"
 #include "zzzinfomation.h"
+#include "QuestMng.h"
 
 #include "WSclient.h"
 #include "Time/Timer.h"
@@ -669,8 +671,6 @@ protected:
     virtual BOOL DoLineMouseAction(int nLine);
     virtual int GetRenderLinePos_y(int nLine);
 };
-
-enum REQUEST_REWARD_CLASSIFY;
 
 struct SQuestContents
 {

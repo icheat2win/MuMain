@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <Platform>x86</Platform>
-    <PlatformTarget>x86</PlatformTarget>
     <Nullable>enable</Nullable>
     <SupportNativeAot>true</SupportNativeAot>
     <IsAotCompatible>true</IsAotCompatible>
@@ -15,6 +13,26 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <WarningsAsErrors>nullable;CS4014;VSTHRD110;VSTHRD100</WarningsAsErrors>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <Platform>x86</Platform>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x86'">
+    <Platform>x86</Platform>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' Or '$(RuntimeIdentifier)' == 'linux-x64' Or '$(RuntimeIdentifier)' == 'osx-x64'">
+    <Platform>x64</Platform>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-arm64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
+    <Platform>arm64</Platform>
+    <PlatformTarget>arm64</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MUnique.OpenMU.Network.Packets" Version="0.9.8" />
+    <PackageReference Include="MUnique.OpenMU.Network.Packets" Version="0.9.8" GeneratePathProperty="true" />
     <PackageReference Include="Pipelines.Sockets.Unofficial" Version="2.2.8" />
   </ItemGroup>
 
@@ -38,25 +56,34 @@
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(PkgMUnique_OpenMU_Network_Packets)' != ''">
+    <PacketsPackageDir>$([System.IO.Path]::GetFullPath('$(PkgMUnique_OpenMU_Network_Packets)'))</PacketsPackageDir>
+    <PacketsContentDir>$([System.IO.Path]::Combine('$(PacketsPackageDir)', 'contentFiles', 'any', 'net9.0'))</PacketsContentDir>
+  </PropertyGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(ci)'!='true'">
+  <PropertyGroup>
+    <DotnetOutputDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Source Main 5.2/source/Dotnet'))</DotnetOutputDir>
+  </PropertyGroup>
+
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(ci)'!='true' and '$(PacketsContentDir)' != ''">
     <!-- We only run the transformation locally on our dev environment with visual studio.
         The CI environment is identified by the parameter 'ci'. It's set in the azure pipelines and Dockerfile.
         If you run into errors here under Linux/Mac OS, it might help to add this parameter, too. -->
-    <XslTransformation OutputPaths="ConnectionManager.ClientToServerFunctions.cs" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ClientToServer\ClientToServerPackets.xml" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
-    <XslTransformation OutputPaths="ConnectionManager.ChatServerFunctions.cs" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ChatServer\ChatServerPackets.xml" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
-    <XslTransformation OutputPaths="ConnectionManager.ConnectServerFunctions.cs" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ConnectServer\ConnectServerPackets.xml" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
+    <XslTransformation OutputPaths="ConnectionManager.ClientToServerFunctions.cs" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ClientToServer', 'ClientToServerPackets.xml'))" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
+    <XslTransformation OutputPaths="ConnectionManager.ChatServerFunctions.cs" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ChatServer', 'ChatServerPackets.xml'))" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
+    <XslTransformation OutputPaths="ConnectionManager.ConnectServerFunctions.cs" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ConnectServer', 'ConnectServerPackets.xml'))" XslInputPath="GenerateExtensionsDotNet.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
 
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ClientToServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ClientToServer\ClientToServerPackets.xml" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ChatServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ChatServer\ChatServerPackets.xml" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ConnectServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ConnectServer\ConnectServerPackets.xml" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ClientToServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ClientToServer', 'ClientToServerPackets.xml'))" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ChatServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ChatServer', 'ChatServerPackets.xml'))" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ConnectServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ConnectServer', 'ConnectServerPackets.xml'))" XslInputPath="GenerateFunctionsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
 
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ClientToServer.cpp" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ClientToServer\ClientToServerPackets.xml" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ChatServer.cpp" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ChatServer\ChatServerPackets.xml" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketFunctions_ConnectServer.cpp" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ConnectServer\ConnectServerPackets.xml" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ClientToServer.cpp'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ClientToServer', 'ClientToServerPackets.xml'))" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ChatServer.cpp'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ChatServer', 'ChatServerPackets.xml'))" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketFunctions_ConnectServer.cpp'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ConnectServer', 'ConnectServerPackets.xml'))" XslInputPath="GenerateFunctions.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
 
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketBindings_ClientToServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ClientToServer\ClientToServerPackets.xml" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketBindings_ChatServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ChatServer\ChatServerPackets.xml" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
-    <XslTransformation OutputPaths="..\Source Main 5.2\source\Dotnet\PacketBindings_ConnectServer.h" XmlInputPaths="$(USERPROFILE)\.nuget\packages\munique.openmu.network.packets\0.9.8\contentFiles\any\net9.0\ConnectServer\ConnectServerPackets.xml" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketBindings_ClientToServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ClientToServer', 'ClientToServerPackets.xml'))" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ClientToServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketBindings_ChatServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ChatServer', 'ChatServerPackets.xml'))" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ChatServer'/&gt;" />
+    <XslTransformation OutputPaths="$([System.IO.Path]::Combine('$(DotnetOutputDir)', 'PacketBindings_ConnectServer.h'))" XmlInputPaths="$([System.IO.Path]::Combine('$(PacketsContentDir)', 'ConnectServer', 'ConnectServerPackets.xml'))" XslInputPath="GenerateBindingsHeader.xslt" Parameters="&lt;Parameter Name='subNamespace' Value='ConnectServer'/&gt;" />
   </Target>
 </Project>

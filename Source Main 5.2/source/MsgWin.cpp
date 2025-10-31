@@ -6,7 +6,6 @@
 #include "MsgWin.h"
 #include "Input.h"
 #include "UIMng.h"
-#include <crtdbg.h>
 #include "ZzzBMD.h"
 #include "ZzzInfomation.h"
 #include "ZzzObject.h"

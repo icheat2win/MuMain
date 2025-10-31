@@ -20,7 +20,7 @@
 #ifdef _WIN32
 inline const HINSTANCE munique_client_library_handle = LoadLibrary(L"MUnique.Client.Library.dll");
 #else
-inline const void* munique_client_library_handle = dlopen("MUnique.Client.Library.dll", RTLD_LAZY);
+inline void* munique_client_library_handle = dlopen("MUnique.Client.Library.dll", RTLD_LAZY);
 #endif
 
 

@@ -1011,4 +1011,19 @@ HRESULT RestoreBuffers(int Buffer, int Channel);
 void	SetVolume(int Buffer, long vol);
 void	SetMasterVolume(long vol);
 
+#if !PLATFORM_WINDOWS
+inline HRESULT InitDirectSound(HWND) { return S_OK; }
+inline void SetEnableSound(bool) {}
+inline void FreeDirectSound() {}
+inline void LoadWaveFile(ESound, wchar_t*, int, bool) {}
+inline HRESULT PlayBuffer(ESound, OBJECT*, BOOL) { return S_OK; }
+inline void StopBuffer(ESound, BOOL) {}
+inline void AllStopSound() {}
+inline void Set3DSoundPosition() {}
+inline HRESULT ReleaseBuffer(int) { return S_OK; }
+inline HRESULT RestoreBuffers(int, int) { return S_OK; }
+inline void SetVolume(int, long) {}
+inline void SetMasterVolume(long) {}
+#endif
+
 #endif //__DSPLAYSOUND_H__

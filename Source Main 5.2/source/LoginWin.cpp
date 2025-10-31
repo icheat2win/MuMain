@@ -19,7 +19,10 @@
 
 
 #include "ServerListManager.h"
+
+#if PLATFORM_WINDOWS
 #include <dpapi.h>
+#endif
 
 #define	LIW_ACCOUNT		0
 #define	LIW_PASSWORD	1
@@ -214,6 +217,7 @@ void CLoginWin::RequestLogin()
     m_pIDInputBox->GetText(m_ID, MAX_ID_SIZE + 1);
     m_pPassInputBox->GetText(m_Password, MAX_PASSWORD_SIZE + 1);
 
+#if PLATFORM_WINDOWS
     // Start save account info to registry
     HKEY hKey;
     RegCreateKeyEx(HKEY_CURRENT_USER, L"SOFTWARE\\Webzen\\Mu\\Config", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, NULL);
@@ -232,6 +236,7 @@ void CLoginWin::RequestLogin()
 
     RegSetValueEx(hKey, L"RememberMe", 0, REG_DWORD, (BYTE*)&m_RememberMe, sizeof(m_RememberMe));
     // End save account info to registry
+#endif
 
     if (wcslen(m_ID) <= 0)
         CUIMng::Instance().PopUpMsgWin(MESSAGE_INPUT_ID);
