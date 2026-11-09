@@ -20,6 +20,7 @@
 namespace MUnique.Client.Library;
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -61,9 +62,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -95,9 +96,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -125,15 +126,15 @@ public unsafe partial class ConnectionManager
             {
                 var length = ConnectionInfoRef.Length;
                 var packet = new ConnectionInfoRef(pipeWriter.GetSpan(length)[..length]);
-                packet.IpAddress = Marshal.PtrToStringAuto(@ipAddress);
+                packet.IpAddress = NativeInterop.PtrToWideString(@ipAddress);
                 packet.Port = @port;
 
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -162,9 +163,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -193,9 +194,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -224,9 +225,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -262,9 +263,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -293,9 +294,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -324,13 +325,13 @@ public unsafe partial class ConnectionManager
                 var length = ClientNeedsPatchRef.Length;
                 var packet = new ClientNeedsPatchRef(pipeWriter.GetSpan(length)[..length]);
                 packet.PatchVersion = @patchVersion;
-                packet.PatchAddress = Marshal.PtrToStringAuto(@patchAddress);
+                packet.PatchAddress = NativeInterop.PtrToWideString(@patchAddress);
 
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }}

@@ -20,6 +20,7 @@
 namespace MUnique.Client.Library;
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -64,9 +65,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -95,14 +96,14 @@ public unsafe partial class ConnectionManager
                 var length = ChatRoomClientJoinedRef.Length;
                 var packet = new ChatRoomClientJoinedRef(pipeWriter.GetSpan(length)[..length]);
                 packet.ClientIndex = @clientIndex;
-                packet.Name = Marshal.PtrToStringAuto(@name);
+                packet.Name = NativeInterop.PtrToWideString(@name);
 
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -131,9 +132,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -162,14 +163,14 @@ public unsafe partial class ConnectionManager
                 var length = ChatRoomClientLeftRef.Length;
                 var packet = new ChatRoomClientLeftRef(pipeWriter.GetSpan(length)[..length]);
                 packet.ClientIndex = @clientIndex;
-                packet.Name = Marshal.PtrToStringAuto(@name);
+                packet.Name = NativeInterop.PtrToWideString(@name);
 
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -206,9 +207,9 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }
 
@@ -237,8 +238,8 @@ public unsafe partial class ConnectionManager
                 return length;
             });
         }
-        catch
+        catch (Exception ex)
         {
-            // Log exception
+            Debug.WriteLine(ex);
         }
     }}

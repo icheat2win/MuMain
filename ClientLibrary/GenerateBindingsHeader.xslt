@@ -28,7 +28,10 @@
 #include "Connection.h"
 #include &lt;coreclr_delegates.h&gt;
 
-
+#include "PacketFunctions_CommonEnums.h"
+#include "PacketFunctions_</xsl:text>
+    <xsl:value-of select="$subNamespace"/>
+    <xsl:text>_Enums.h"
 </xsl:text>
     <xsl:apply-templates select="pd:Packets/pd:Packet" mode="function_binding" />
 
@@ -43,16 +46,6 @@
       <xsl:sort select="pd:DefaultValue"/>
     </xsl:apply-templates>
     <xsl:text>);</xsl:text>
-    <xsl:value-of select="$newline" />
-    <xsl:text>inline Send</xsl:text>
-    <xsl:apply-templates select="pd:Name" />
-    <xsl:text> dotnet_Send</xsl:text>
-    <xsl:apply-templates select="pd:Name" />
-    <xsl:text> = reinterpret_cast&lt;Send</xsl:text>
-    <xsl:apply-templates select="pd:Name" />
-    <xsl:text>&gt;(symLoad(munique_client_library_handle, "Send</xsl:text>
-    <xsl:apply-templates select="pd:Name" />
-    <xsl:text>"));</xsl:text>
     <xsl:value-of select="$newline" />
   </xsl:template>
 

@@ -23,6 +23,8 @@
 //------------------------------------------------------------------------------
 
 #include "stdafx.h"
+#include "PacketFunctions_CommonEnums.h"
+#include "PacketFunctions_</xsl:text><xsl:value-of select="$subNamespace"/><xsl:text>_Enums.h"
 #include "PacketFunctions_</xsl:text><xsl:value-of select="$subNamespace"/><xsl:text>.h"
 #include "PacketBindings_</xsl:text><xsl:value-of select="$subNamespace"/><xsl:text>.h"
 
@@ -43,6 +45,20 @@
     <xsl:text>)</xsl:text>
     <xsl:value-of select="$newline"/>
     <xsl:text>{
+    static const auto dotnet_Send</xsl:text>
+    <xsl:apply-templates select="pd:Name" />
+    <xsl:text> = LoadManagedSymbol&lt;::Send</xsl:text>
+    <xsl:apply-templates select="pd:Name" />
+    <xsl:text>&gt;("Send</xsl:text>
+    <xsl:apply-templates select="pd:Name" />
+    <xsl:text>");
+    if (!dotnet_Send</xsl:text>
+    <xsl:apply-templates select="pd:Name" />
+    <xsl:text>)
+    {
+        return;
+    }
+
     dotnet_Send</xsl:text>
     <xsl:apply-templates select="pd:Name" />
     <xsl:text>(this->GetHandle()</xsl:text>
