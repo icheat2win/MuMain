@@ -9612,4 +9612,7 @@
   <data name="Critical damage total: +%d" xml:space="preserve">
     <value>Total: +%d</value>
   </data>
+  <data name="You cannot sell equipped items." xml:space="preserve">
+    <value>You cannot sell equipped items.</value>
+  </data>
 </root>

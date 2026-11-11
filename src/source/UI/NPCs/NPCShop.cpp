@@ -352,6 +352,16 @@ bool mu::ui::window::CNPCShop::InsertItem(int iIndex, std::span<const BYTE> pbyI
     return false;
 }
 
+namespace
+{
+// Whether the held item was taken from the hero's equipment slots, which a shop never buys.
+bool IsPickedFromEquipment(const mu::ui::window::CPickedItem* pPickedItem)
+{
+    const ITEM* pItem = pPickedItem->GetItem();
+    return pItem != nullptr && pItem->ex_src_type == ITEM_EX_SRC_EQUIPMENT;
+}
+} // namespace
+
 bool mu::ui::window::CNPCShop::InventoryProcess()
 {
     CPickedItem* pPickedItem = CInventoryCtrl::GetPickedItem();
@@ -375,6 +385,13 @@ bool mu::ui::window::CNPCShop::InventoryProcess()
         if (pItem && pItem->Jewel_Of_Harmony_Option != 0)
         {
             g_pSystemLogBox->AddText(I18N::Game::ReinforcedItemCanTBeSold, mu::ui::window::TYPE_ERROR_MESSAGE);
+
+            return true;
+        }
+        if (IsPickedFromEquipment(pPickedItem))
+        {
+            g_pSystemLogBox->AddText(I18N::Game::YouCannotSellEquippedItems, mu::ui::window::TYPE_ERROR_MESSAGE);
+            m_pNewInventoryCtrl->BackupPickedItem();
 
             return true;
         }

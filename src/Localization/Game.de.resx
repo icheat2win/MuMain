@@ -9216,4 +9216,7 @@
   <data name="Critical damage total: +%d" xml:space="preserve">
     <value>Gesamt: +%d</value>
   </data>
+  <data name="You cannot sell equipped items." xml:space="preserve">
+    <value>Ausgerüstete Gegenstände können nicht verkauft werden.</value>
+  </data>
 </root>
