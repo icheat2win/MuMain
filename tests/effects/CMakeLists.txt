@@ -5,6 +5,13 @@ mu_add_test(
         ${CMAKE_SOURCE_DIR}/src/source/Render/Effects/ParticleDrawOrder.cpp
 )
 
+mu_add_test(
+    NAME test_multi_shot_fan
+    SOURCES
+        test_multi_shot_fan.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/Render/Effects/MultiShotFan.cpp
+)
+
 # The shipped effect catalogue and the registry built from it, for test_effect_creation and test_effect_types.
 mu_add_test_objects(NAME mu_test_effect_data SOURCES EffectTestData.cpp LINK_LIBS mu_test_main MuClient)
 target_compile_definitions(mu_test_effect_data PRIVATE MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data")

@@ -16,6 +16,7 @@
 #include "GameLogic/Skills/SkillManager.h"
 #include "Core/Utilities/Random.h"
 #include "Data/GameData/ItemData/ItemModelSlots.h"
+#include "Render/Effects/MultiShotFan.h"
 
 #include <cmath>
 #include "Render/Renderer/MuRenderer.h"
@@ -306,6 +307,33 @@ void CreateArrow(CHARACTER* c, OBJECT* o, OBJECT* to, WORD SkillIndex, WORD Skil
     }
 }
 
+namespace
+{
+bool ShootsFourArrows(const CHARACTER* c)
+{
+    return c->Weapon[0].Type == MODEL_DIVINE_CB_OF_ARCHANGEL || c->Weapon[0].Type == MODEL_GREAT_REIGN_CROSSBOW ||
+           c->Weapon[1].Type == MODEL_ALBATROSS_BOW || c->Weapon[1].Type == MODEL_STINGER_BOW ||
+           c->Weapon[1].Type == MODEL_AIR_LYN_BOW;
+}
+
+// Triple Shot's fan of arrows, centred on the archer's facing, which it leaves as it was.
+void CreateMultiShotArrows(CHARACTER* c, OBJECT* o, OBJECT* to, WORD SkillIndex, WORD Skill, WORD SKKey)
+{
+    namespace MultiShot = Render::Effects::MultiShot;
+
+    const bool mastery = c->Skill == AT_SKILL_TRIPLE_SHOT_MASTERY;
+    const int arrowCount = MultiShot::ArrowCount(ShootsFourArrows(c), mastery);
+    const float spacing = MultiShot::ArrowSpacing(arrowCount);
+    const float facing = o->Angle[2];
+    for (int i = 0; i < arrowCount; ++i)
+    {
+        o->Angle[2] = facing + MultiShot::ArrowTurn(i, arrowCount, spacing);
+        CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
+    }
+    o->Angle[2] = facing;
+}
+} // namespace
+
 void CreateArrows(CHARACTER* c, OBJECT* o, OBJECT* to, WORD SkillIndex, WORD Skill, WORD SKKey)
 {
     if (SKKey == AT_SKILL_PENETRATION || SKKey == AT_SKILL_PENETRATION_STR || SKKey == AT_SKILL_ICE_ARROW ||
@@ -318,31 +346,8 @@ void CreateArrows(CHARACTER* c, OBJECT* o, OBJECT* to, WORD SkillIndex, WORD Ski
     {
         if (Skill == 1)
         {
-            if (c->Weapon[0].Type == MODEL_DIVINE_CB_OF_ARCHANGEL || c->Weapon[0].Type == MODEL_GREAT_REIGN_CROSSBOW ||
-                c->Weapon[1].Type == MODEL_ALBATROSS_BOW || c->Weapon[1].Type == MODEL_STINGER_BOW ||
-                c->Weapon[1].Type == MODEL_AIR_LYN_BOW)
-            {
-                o->Angle[2] += 5.f; // 15.f;//7.5f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] += 10.f; // 15.f;//7.5f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] -= 20.f; // 45.f;//22.5f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] -= 10.f; // 15.f;//7.5f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] += 30.f; // 30.f;//15.f;
-                CharacterMachine->PacketSerial++;
-            }
-            else
-            {
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] += 15.f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] -= 30.f;
-                CreateArrow(c, o, to, SkillIndex, Skill, SKKey);
-                o->Angle[2] += 15.f;
-                CharacterMachine->PacketSerial++;
-            }
+            CreateMultiShotArrows(c, o, to, SkillIndex, Skill, SKKey);
+            CharacterMachine->PacketSerial++;
         }
         else
         {
