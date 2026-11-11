@@ -338,28 +338,33 @@ bool CDirection::ActionCreatedMonster(int Index, int Action, int Count, bool Tan
     return false;
 }
 
+namespace
+{
+// The hero's fall at the end of the Maya battle, per frame at the 25 fps reference (docs/adr/0001).
+constexpr float FallGravityStep = 1.5f; // how much faster the hero falls each frame
+constexpr float FallMaxGravity = 150.0f;
+constexpr float FallPitchStep = 2.f; // degrees the hero tips forward each frame
+constexpr float FallMaxPitch = -90.0f;
+// Up to this speed the fall has just begun, and its heading is taken from the hero.
+constexpr float FallStartGravity = 2.f;
+} // namespace
+
 void CDirection::HeroFallingDownDirection()
 {
     if (!m_bDownHero)
         return;
 
-    Hero->Object.Gravity += 1.5f;
-    Hero->Object.Angle[0] -= 2.f;
-    Hero->Object.m_bActionStart = true;
-    Hero->Object.Direction[1] += Hero->Object.Direction[0];
+    OBJECT& hero = Hero->Object;
+    hero.Gravity = std::min(hero.Gravity + FallGravityStep * FPS_ANIMATION_FACTOR, FallMaxGravity);
+    hero.Angle[0] = std::max(hero.Angle[0] - FallPitchStep * FPS_ANIMATION_FACTOR, FallMaxPitch);
+    hero.m_bActionStart = true;
+    hero.Direction[1] += hero.Direction[0] * FPS_ANIMATION_FACTOR;
 
-    if (Hero->Object.Gravity <= 2.f)
-        m_AngleY = Hero->Object.Angle[2];
+    if (hero.Gravity <= FallStartGravity)
+        m_AngleY = hero.Angle[2];
 
-    if (Hero->Object.Angle[0] <= -90.0f)
-        Hero->Object.Angle[0] = -90.0f;
-
-    Hero->Object.Angle[2] = m_AngleY;
-
-    if (Hero->Object.Gravity >= 150.0f)
-        Hero->Object.Gravity = 150.0f;
-
-    Hero->Object.Position[2] -= Hero->Object.Gravity;
+    hero.Angle[2] = m_AngleY;
+    hero.Position[2] -= hero.Gravity * FPS_ANIMATION_FACTOR;
 
     FaillingEffect();
 }
