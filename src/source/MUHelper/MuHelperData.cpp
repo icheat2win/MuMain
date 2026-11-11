@@ -131,10 +131,13 @@ void ConfigDataSerDe::Serialize(const ConfigData& gameData, PRECEIVE_MUHELPER_DA
             break;
         }
 
-        size_t n = wcstombs(netData.ExtraItems[iItemIndex], wsItem.c_str(), 15);
-        if (n == (size_t)-1 || n == 15)
+        // A name longer than the slot keeps its first characters: the helper matches the names as parts of item
+        // names (CMuHelper::ShouldObtainItem), so a cut name still finds its item.
+        char* slot = netData.ExtraItems[iItemIndex];
+        constexpr size_t SlotChars = sizeof(netData.ExtraItems[0]) - 1; // the last byte ends the name
+        if (wcstombs(slot, wsItem.c_str(), SlotChars) == static_cast<size_t>(-1))
         {
-            memset(netData.ExtraItems[iItemIndex], 0, 15);
+            memset(slot, 0, sizeof(netData.ExtraItems[0]));
         }
         iItemIndex++;
     }

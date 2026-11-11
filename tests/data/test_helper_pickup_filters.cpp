@@ -235,3 +235,17 @@ TEST_CASE("Helper All and Selected retain their category semantics [data][helper
     CHECK(GameLogic::Automation::ShouldPickUpHelperItem(config, &jewel));
     CHECK_FALSE(GameLogic::Automation::ShouldPickUpHelperItem(config, &money));
 }
+
+TEST_CASE("Helper extra item names longer than their slot are saved cut, not dropped [data][helper][pickup]")
+{
+    MUHelper::ConfigData config;
+    config.aExtraItems.insert(L"Green Ribbon Box");
+    config.aExtraItems.insert(L"Box of Luck");
+
+    PRECEIVE_MUHELPER_DATA packet{};
+    MUHelper::ConfigDataSerDe::Serialize(config, packet);
+
+    // std::set keeps the names sorted: "Box of Luck" comes first.
+    CHECK(std::string(packet.ExtraItems[0]) == "Box of Luck");
+    CHECK(std::string(packet.ExtraItems[1]) == "Green Ribbon B");
+}
