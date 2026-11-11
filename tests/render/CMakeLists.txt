@@ -1,4 +1,11 @@
 mu_add_test(
+    NAME team_skin_parts_tests
+    SOURCES
+        test_team_skin_parts.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/Engine/Object/TeamSkinParts.cpp
+)
+
+mu_add_test(
     NAME bitmap_gpu_resources_tests
     SOURCES
         test_bitmap_gpu_resources.cpp

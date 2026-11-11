@@ -26,6 +26,7 @@
 #include "Engine/Object/ZzzInfomation.h"
 #include "Engine/Object/ZzzObject.h"
 #include "Engine/Object/ZzzCharacter.h"
+#include "Engine/Object/TeamSkinParts.h"
 #include "Engine/Object/AnimationTaskPool.h"
 #include "Engine/Object/CharacterAttachments.h"
 #include "Engine/Object/PlayerActionState.h"
@@ -6951,17 +6952,10 @@ unsigned short LinkedPartAction(const CHARACTER* c, const PART_t* f)
 bool HidesLinkedPart(const CHARACTER* c, int Type)
 {
     const OBJECT* o = &c->Object;
-    if (o->SubType == MODEL_CURSEDTEMPLE_ALLIED_PLAYER || o->SubType == MODEL_CURSEDTEMPLE_ILLUSION_PLAYER)
-    {
-        if (Type >= MODEL_WING && Type <= MODEL_WINGS_OF_DARKNESS)
-            return true;                                                         // 1st and 2nd Wings
-        else if (Type >= MODEL_WING_OF_STORM && Type <= MODEL_WING_OF_DIMENSION) // 3rd Wings
-            return true;
-        else if (MODEL_SMALL_CAPE_OF_LORD >= Type && Type <= MODEL_LITTLE_WARRIORS_CLOAK)
-            return true; // Small Wings and Capes
-        else if (Type >= MODEL_CAPE_OF_FIGHTER && Type <= MODEL_CAPE_OF_OVERRULE)
-            return true; // Capes
-    }
+    const bool teamSkin =
+        o->SubType == MODEL_CURSEDTEMPLE_ALLIED_PLAYER || o->SubType == MODEL_CURSEDTEMPLE_ILLUSION_PLAYER;
+    if (teamSkin && Engine::Object::TeamSkinHidesPart(Type))
+        return true;
     if (GameLogic::Items::IsSummonerBookModel(Type))
         return true;
     return g_isCharacterBuff(o, eBuff_Cloaking);
