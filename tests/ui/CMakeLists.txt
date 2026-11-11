@@ -57,6 +57,13 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME friend_name_tests
+    SOURCES
+        test_friend_name.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/Social/FriendName.cpp
+)
+
+mu_add_test(
     NAME jewel_unmix_selection_tests
     SOURCES
         test_jewel_unmix_selection.cpp

@@ -14,6 +14,7 @@
 #include "GameLogic/Events/w_CursedTemple.h"
 #include "GameLogic/Items/PersonalShopTitleImp.h"
 #include "Guild/GuildTypes.h"
+#include "UI/Social/FriendRequest.h"
 #include "Engine/AI/ZzzAI.h"
 #include "World/MapInfra/MapManager.h"
 
@@ -566,7 +567,7 @@ bool mu::ui::window::CCommandWindow::CommandAddFriend(CHARACTER* pSelectedCha)
 {
     if (g_pWindowMgr->IsServerEnable() == TRUE && pSelectedCha != nullptr)
     {
-        SocketClient->ToGameServer()->SendFriendAddRequest(MU_C16(pSelectedCha->ID));
+        UI::Social::RequestAddFriend(pSelectedCha->ID);
         return true;
     }
 

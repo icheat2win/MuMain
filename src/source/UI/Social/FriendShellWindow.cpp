@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "UI/Social/FriendWindow.h"
 #include "UI/Social/FriendShell.h"
+#include "UI/Social/FriendRequest.h"
 #include "UI/Core/WindowCommon.h"
 #include "UI/Core/WindowSystem.h"
 
@@ -46,9 +47,7 @@ BOOL CUIFriendWindow::HandleMessage()
 {
     if (m_WorkMessage.m_iMessage == UI_MESSAGE_TXTRETURN)
     {
-        const auto name = TakeReturnText();
-        if (!name.empty())
-            SocketClient->ToGameServer()->SendFriendAddRequest(MU_C16(name.c_str()));
+        UI::Social::RequestAddFriend(TakeReturnText());
     }
     else if (m_WorkMessage.m_iMessage == UI_MESSAGE_SELECTED)
         m_Shell->RequestPaneFocus();
