@@ -111,7 +111,7 @@ mu_add_test(
         ${CMAKE_SOURCE_DIR}/src/source/Render/PostProcessing/BloomSource.cpp
         ${CMAKE_SOURCE_DIR}/src/source/Render/PostProcessing/ColorGradingTable.cpp
         ${CMAKE_SOURCE_DIR}/src/source/Render/PostProcessing/SceneBoundary.cpp
-    LINK_LIBS SDL3::SDL3
+    LINK_LIBS SDL3::SDL3 mu_test_content mu_test_path_resolve
 )
 
 mu_add_test(
@@ -174,9 +174,9 @@ mu_add_test(
         test_texture_pack.cpp
         ${CMAKE_SOURCE_DIR}/src/source/Render/Textures/TexturePack.cpp
         ${CMAKE_SOURCE_DIR}/src/source/Render/Textures/TexturePackFiles.cpp
-        ${CMAKE_SOURCE_DIR}/src/source/Render/Sprites/GlobalBitmapPath.cpp
     LINK_LIBS
         mu_test_asset_path
+        mu_test_content
         mu_test_path_resolve
 )
 
@@ -298,7 +298,7 @@ mu_add_test(
     LINK_LIBS
         MuClient
 )
-# The player tuning tests copy the shipped look and mood files to check they stay untouched, and read
+# The player tuning tests copy the shipped look file to check it stays untouched, and read
 # the sources for the one place that applies a pending light mood strength.
 target_compile_definitions(look_profile_tests PRIVATE
     MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data"

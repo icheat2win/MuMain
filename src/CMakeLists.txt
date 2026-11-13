@@ -198,18 +198,42 @@ file(GLOB_RECURSE MU_CLIENT_SOURCES
         "source/*.cpp"
 )
 
-# Per-platform entry points (App/Platform/<OS>/Winmain.cpp, main.cpp, main.mm)
-# belong to the executable, not the engine library. Removing them keeps the
-# library free of a WinMain/main() so it can be linked into test binaries that
-# bring their own entry point, and so a non-Windows entry (e.g. Linux main.cpp)
-# does not get globbed into MuClient and collide with the executable's own
-# entry symbol at link time. Match only the Platform/<OS>/ entry-file tail, not
+# The entry point (App/Platform/AppMain.cpp, SDL's main callbacks) and the client
+# bootstrap they call (App/Platform/Windows/Winmain.cpp) belong to the executable,
+# not the engine library. Removing them keeps the library free of a main() so it
+# can be linked into test binaries that bring their own entry point. Tests that
+# need the bootstrap's input routing compile Winmain.cpp themselves. Match only the entry-file tail, not
 # an absolute path: a ${CMAKE_CURRENT_SOURCE_DIR}-built path can differ from
 # glob results in drive-letter casing or separators on Windows. This excludes
 # only the entry files; other Platform/<OS>/ sources (e.g. Local.cpp) stay in
 # the library.
 list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Platform[/\\][^/\\]+[/\\][Ww]in[Mm]ain\\.[Cc]pp$")
-list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Platform[/\\][^/\\]+[/\\]main\\.(cpp|mm)$")
+list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Platform[/\\]AppMain\\.cpp$")
+
+# Where the network library's exports come from: one adapter per target, compiled into the executable beside the
+# entry files rather than into the library, so a target or a test can bring its own instead.
+list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Dotnet[/\\]SymbolSources[/\\]")
+set(MU_MANAGED_SYMBOL_SOURCE "library" CACHE STRING
+  "Where the network library's exports come from: library (the NativeAOT library)")
+set_property(CACHE MU_MANAGED_SYMBOL_SOURCE PROPERTY STRINGS library)
+if(MU_MANAGED_SYMBOL_SOURCE STREQUAL "library")
+  set(MU_MANAGED_SYMBOL_ADAPTER "${CMAKE_CURRENT_SOURCE_DIR}/source/Dotnet/SymbolSources/ManagedLibrarySource.cpp"
+    CACHE INTERNAL "The adapter the executable and the tests that use the real library compile")
+else()
+  message(FATAL_ERROR "MU_MANAGED_SYMBOL_SOURCE=${MU_MANAGED_SYMBOL_SOURCE} has no adapter")
+endif()
+# The library's file, and whether the loader finds it by bare name (the executable's folder on Windows, the app's
+# libraries on Android) or needs it beside the executable (Linux, macOS).
+if(ANDROID)
+  set(MU_MANAGED_LIBRARY_FILE "libMUnique.Client.Library.so")
+else()
+  set(MU_MANAGED_LIBRARY_FILE "MUnique.Client.Library${CMAKE_SHARED_LIBRARY_SUFFIX}")
+endif()
+if(WIN32 OR ANDROID)
+  set(MU_MANAGED_LIBRARY_BY_NAME 1)
+else()
+  set(MU_MANAGED_LIBRARY_BY_NAME 0)
+endif()
 
 # The in-game shop uses one libcurl transport on every platform. Keep the
 # legacy WinINet implementation out of the build.
@@ -407,39 +431,35 @@ target_link_libraries(MuClient_whole INTERFACE $<LINK_LIBRARY:WHOLE_ARCHIVE,MuCl
 add_library(MuClient::MuClient ALIAS MuClient_whole)
 
 # Thin executable: platform bootstrap only, links the engine library. The
-# executable shell's sources live under source/App/ (see issue #346). The entry
-# point is selected per platform (issue #441): each OS keeps its bootstrap under
-# source/App/Platform/<OS>/, so adding a platform is a new entry file plus a
-# branch here, not a CMake rewrite. Only the Windows entry point exists today;
-# the Linux/macOS sources are added when that work starts.
+# executable shell's sources live under source/App/ (see issue #346). Every
+# desktop platform enters through SDL's main callbacks (AppMain.cpp), which drive
+# the shared bootstrap and game loop in Winmain.cpp one frame at a time.
 #
 # Unsupported platforms fail loudly rather than silently selecting the Linux
 # entry: the mobile targets need a different entry model and a renderer port
 # (the engine uses fixed-function desktop OpenGL), so quietly compiling a
 # desktop main() for them would be wrong. iOS is matched before the generic
 # APPLE/macOS branch, and Android before the generic UNIX/Linux branch.
+set(MU_APP_ENTRY_SOURCES
+  "source/App/Platform/AppMain.cpp"
+  "source/App/Platform/Windows/Winmain.cpp"
+  "${MU_MANAGED_SYMBOL_ADAPTER}")
 if (WIN32)
-  set(MU_APP_ENTRY "source/App/Platform/Windows/Winmain.cpp")
+  set(MU_APP_ENTRY ${MU_APP_ENTRY_SOURCES})
 elseif (CMAKE_SYSTEM_NAME STREQUAL "iOS")
   message(FATAL_ERROR "iOS is not a supported build target yet: it needs an "
     "OpenGL ES/Metal renderer port and a touch UI, and distribution is App "
     "Store restricted. When that work starts, add source/App/Platform/iOS/ "
     "and replace this branch.")
 elseif (APPLE)
-  set(MU_APP_ENTRY
-    "source/App/Platform/macOS/main.mm"
-    "source/App/Platform/Windows/Winmain.cpp")
+  set(MU_APP_ENTRY ${MU_APP_ENTRY_SOURCES})
 elseif (ANDROID)
   message(FATAL_ERROR "Android is not a supported build target yet: it needs "
     "an OpenGL ES renderer port, and its entry point is android_main via "
     "native_app_glue built as a shared library, not an executable. When that "
     "work starts, add source/App/Platform/Android/ and replace this branch.")
 elseif (UNIX)
-  # Linux entry (main.cpp) plus the shared bootstrap/game-loop from Winmain.cpp,
-  # which now compiles off Windows (issue #462). main() calls into it.
-  set(MU_APP_ENTRY
-    "source/App/Platform/Linux/main.cpp"
-    "source/App/Platform/Windows/Winmain.cpp")
+  set(MU_APP_ENTRY ${MU_APP_ENTRY_SOURCES})
 else()
   message(FATAL_ERROR "No executable entry point defined for this platform "
     "(CMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}). Add source/App/Platform/<OS>/ "
@@ -791,7 +811,8 @@ target_compile_definitions(MuClient PUBLIC
   _LANGUAGE_FOREIGN
   _LANGUAGE_ENG
   UNICODE
-  "MU_DOTNET_LIB_EXT=\"${CMAKE_SHARED_LIBRARY_SUFFIX}\""
+  "MU_MANAGED_LIBRARY_FILE=\"${MU_MANAGED_LIBRARY_FILE}\""
+  MU_MANAGED_LIBRARY_BY_NAME=${MU_MANAGED_LIBRARY_BY_NAME}
   $<$<EQUAL:${CMAKE_SIZEOF_VOID_P},4>:_USE_32BIT_TIME_T>  # Use 32-bit time_t only for 32-bit builds
   $<$<CONFIG:Debug>:_DEBUG;_FOREIGN_DEBUG>
   $<$<CONFIG:Release>:NDEBUG;_FOREIGN_NDEBUG;LDS_PATCH_GLOBAL_100520>
