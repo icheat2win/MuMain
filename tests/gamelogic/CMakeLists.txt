@@ -173,3 +173,10 @@ mu_add_test(
     SOURCES
         test_skill_hotkey_configuration.cpp
 )
+
+# The Elf Soldier's buff as the character window shows it, and as the server adds it.
+mu_add_test(
+    NAME test_elf_soldier_buff
+    SOURCES
+        test_elf_soldier_buff.cpp
+)

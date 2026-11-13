@@ -28,6 +28,7 @@
 #include "UI/Character/CriticalDamageRateLine.h"
 #include "GameLogic/Combat/CriticalDamageBonus.h"
 #include "GameLogic/Combat/CriticalDamageRate.h"
+#include "GameLogic/Buffs/ElfSoldierBuff.h"
 
 #include <RmlUi/Core/DataModelHandle.h>
 #include <RmlUi/Core/ElementDocument.h>
@@ -674,16 +675,7 @@ void mu::ui::window::CCharacterInfoWindow::BuildAttributeLines()
     }
     if (g_isCharacterBuff((&Hero->Object), eBuff_HelpNpc))
     {
-        int iTemp = 0;
-        if (CharacterAttribute->Level > 180)
-        {
-            iTemp = (180 / 3) + 45;
-        }
-        else
-        {
-            iTemp = (CharacterAttribute->Level / 3) + 45;
-        }
-
+        const int iTemp = GameLogic::Buffs::ElfSoldierDamageBonus(CharacterAttribute->Level);
         iAttackDamageMin += iTemp;
         iAttackDamageMax += iTemp;
     }
@@ -1031,14 +1023,7 @@ void mu::ui::window::CCharacterInfoWindow::BuildAttributeLines()
 
     if (g_isCharacterBuff((&Hero->Object), eBuff_HelpNpc))
     {
-        if (CharacterAttribute->Level > 180)
-        {
-            t_adjdef += 180 / 5 + 50;
-        }
-        else
-        {
-            t_adjdef += (CharacterAttribute->Level / 5 + 50);
-        }
+        t_adjdef += GameLogic::Buffs::ElfSoldierDefenseBonus(CharacterAttribute->Level);
     }
 
     if (g_isCharacterBuff((&Hero->Object), eBuff_Berserker))

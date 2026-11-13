@@ -59,3 +59,14 @@ editor's Data Checks (area **Buffs**,
 - A right-click on the strengthened Infinity Arrow and Expansion of Wizardry
   (buffs 143, 138, 139) cancelled nothing: the code knew only the first tier's
   skill.
+
+## What the character window adds
+
+Some buffs still add their values to the character window's damage and defense
+in code, until their values come from the data (see the buffs design). The Elf
+Soldier's buff (number 3, `eBuff_HelpNpc`) adds 45 + level / 3 damage and
+50 + level / 5 defense (`GameLogic/Buffs/ElfSoldierBuff.h`), as the server
+does. She gives it up to level 220, and the bonus grows up to there: a level
+200 character gets 111 damage and 90 defense. The original client stopped the
+growth at level 180, so the window showed less than the character got above
+it.
