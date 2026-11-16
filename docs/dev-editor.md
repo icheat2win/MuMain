@@ -108,21 +108,27 @@ cursor. In the Map Editor's thumbnail grids they move in both directions.
 ### Data Checks
 
 **Windows > Data Checks** lists the problems of all game data in one table:
-the items, the monsters, the monster models and the render styles (area
+the items, the monsters, the monster models, the render styles (area
 **Render styles**: the looks as the Style Editor has them, checked against
-the item models and the texture files) as their Save would write them now,
+the item models, the part models and the texture files) and the item effects
+(area **Item effects**: checked against the items that name them) as their
+Save would write them now,
 and the glTF model file table, the server list, the effect
-catalogue, the graphics look (the look
-profile and the light moods, area **Graphics look**) and the item options
+catalogue, the graphics look (`Data/Render/Look.json`,
+area **Graphics look**), the item options
 (`Data/Items/Options` and the option texts, area **Item options**,
-[item-data.md](item-data.md#item-options)) as the game reads their files at
+[item-data.md](item-data.md#item-options)) and the buffs (area **Buffs**,
+[buff-data.md](buff-data.md)) as the game reads their files at
 start, and the map object sounds as the Map Editor's Sounds tab has them
 ([map-data.md](map-data.md)).
 
 Problems have three levels, the same in every area: **fatal** (the data
 cannot be used: Save refuses it, and the game does not start with it; only
 the graphics look starts anyway, with the built-in look values and the
-Classic light),
+Classic light; a version 1 `Look.json` without its `LightMood.json` keeps
+its look values with the Classic light and cannot be saved, and a
+`LightMood.json` beside a version 2 file is a warning, as it is no longer
+read),
 **error** (something it names is missing, e.g. an item or a model file: the
 game runs without it, Save keeps it) and **warning** (it works, but is worth
 knowing). The worst come first. The boxes above the table show or hide each
