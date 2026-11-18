@@ -3,18 +3,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Platform/Quit.h"
 #include "Core/Content/ContentStore.h"
 #include "Data/DataHandler/DataFileIO.h"
 #include "Core/Utilities/FileHandle.h"
 #include "Core/Utilities/Random.h"
 #include "Core/Utilities/DrawSpawnCheck.h"
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
 #include <math.h>
 #include <iterator>
 #include <vector>
@@ -155,8 +149,7 @@ void InitTerrainMappingLayer()
 
 void ExitProgram()
 {
-    MessageBoxW(g_hWnd, I18N::Game::DataError, NULL, MB_OK);
-    PostQuitMessage(0);
+    Core::Platform::ShowFatalError(L"Error", I18N::Game::DataError);
 }
 
 
@@ -169,8 +162,7 @@ int OpenTerrainAttribute(wchar_t* FileName)
         mu_swprintf(Text, L"%ls file not found.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return (-1);
     }
     // Read file data
@@ -277,8 +269,7 @@ bool SaveTerrainAttribute(wchar_t* FileName, int iMap)
         mu_swprintf_s(Text, std::size(Text), L"%ls file not found.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
     const BYTE Version = 0;
@@ -768,8 +759,7 @@ bool OpenTerrainHeight(wchar_t* filename)
         mu_swprintf_s(Text, std::size(Text), L"%ls file not found.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 
@@ -780,8 +770,7 @@ bool OpenTerrainHeight(wchar_t* filename)
         mu_swprintf_s(Text, std::size(Text), L"Failed to seek in %ls.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 
@@ -793,8 +782,7 @@ bool OpenTerrainHeight(wchar_t* filename)
         mu_swprintf_s(Text, std::size(Text), L"%ls is too small (%ld bytes, needs %ld).", FileName, fileSize, RequiredSize);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 
@@ -804,8 +792,7 @@ bool OpenTerrainHeight(wchar_t* filename)
         mu_swprintf_s(Text, std::size(Text), L"Failed to rewind %ls.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 
@@ -819,8 +806,7 @@ bool OpenTerrainHeight(wchar_t* filename)
         mu_swprintf_s(Text, std::size(Text), L"Failed to read %ls (expected %d bytes, got %zu).", FileName, Size, readBytes);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 
@@ -926,8 +912,7 @@ bool OpenTerrainHeightNew(const wchar_t* strFilename)
         mu_swprintf(Text, L"%ls file not found.", FileName);
         g_ErrorReport.Write(Text);
         g_ErrorReport.Write(L"\r\n");
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return false;
     }
 

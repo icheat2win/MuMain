@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Platform/Quit.h"
 #include "Core/Content/ContentStore.h"
 #include "Data/DataHandler/DataFileIO.h"
 #include "Core/Utilities/FileHandle.h"
@@ -20,6 +21,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "Engine/Object/ZzzCharacter.h"
+#include "Engine/Object/Movement/MovementBones.h"
 #include "Render/Terrain/ZzzLodTerrain.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Engine/AI/ZzzAI.h"
@@ -86,6 +88,8 @@ OBJECT_BLOCK ObjectBlock[256];
 OBJECT       Boids[MAX_BOIDS];
 OBJECT       Fishs[MAX_FISHS];
 OBJECT       Mounts[MAX_MOUNTS];
+float MountHeadTurn[MAX_MOUNTS] = {};
+float MountHeadRoll[MAX_MOUNTS] = {};
 OPERATE      Operates[MAX_OPERATES];
 //int   World = -1;
 float EarthQuake;
@@ -290,8 +294,7 @@ static float (*DrawPose(const OBJECT* o, BMD* b, bool Translate, const ObjectGho
     const float frame = ghost != nullptr ? ghost->animationFrame : o->AnimationFrame;
     if (!o->EnableBoneMatrix)
     {
-        b->Animation(BoneTransform, frame, o->PriorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle, false,
-                     !Translate);
+        Engine::Characters::AnimateBones(o, *b, BoneTransform, frame, !Translate);
         return BoneTransform;
     }
     const bool world = !Translate;
@@ -301,7 +304,7 @@ static float (*DrawPose(const OBJECT* o, BMD* b, bool Translate, const ObjectGho
     if (!reused)
     {
         bones = Engine::Object::Attachments::DrawBones();
-        b->Animation(bones, frame, o->PriorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle, false, world);
+        Engine::Characters::AnimateBones(o, *b, bones, frame, world);
     }
 #ifdef MU_ENABLE_CONTROL_SOCKET
     CheckCharacterPose(o, b, reused);
@@ -5890,8 +5893,7 @@ int OpenObjectsEnc(wchar_t* FileName)
     {
         wchar_t Text[256];
         mu_swprintf(Text, L"%ls file not found.", FileName);
-        MessageBox(g_hWnd, Text, NULL, MB_OK);
-        SendMessage(g_hWnd, WM_DESTROY, 0, 0);
+        Core::Platform::ShowFatalError(L"Error", Text);
         return (-1);
     }
     std::optional<std::vector<BYTE>> EncData = DataFileIO::ReadAll(file.get());
