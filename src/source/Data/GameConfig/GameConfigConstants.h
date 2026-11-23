@@ -17,6 +17,9 @@ namespace CfgKeys
     // Window
     inline constexpr wchar_t CfgKeyWidth[]      = L"Width";
     inline constexpr wchar_t CfgKeyHeight[]     = L"Height";
+    // Windowed, Borderless or Fullscreen (WindowMode).
+    inline constexpr wchar_t CfgKeyWindowMode[] = L"Mode";
+    // The window mode of older clients, 1 a window and 0 fullscreen: read when Mode is missing, removed on save.
     inline constexpr wchar_t CfgKeyWindowed[]   = L"Windowed";
 
     // Audio — volume 0 = off, >0 = on (no separate Enabled flag).
@@ -33,6 +36,7 @@ namespace CfgKeys
     // Connection
     inline constexpr wchar_t CfgKeyServerIP[]   = L"ServerIP";
     inline constexpr wchar_t CfgKeyServerPort[] = L"ServerPort";
+    inline constexpr wchar_t CfgKeyRelay[] = L"Relay";
 
     // UI
     inline constexpr wchar_t CfgKeyUILocale[] = L"Locale";
@@ -65,6 +69,13 @@ namespace CfgKeys
     inline constexpr wchar_t CfgKeyAnisotropy[] = L"Anisotropy";
     // Multisample anti-aliasing of the Enhanced look: 0 (off), 2, 4 or 8 samples per pixel.
     inline constexpr wchar_t CfgKeyAntialiasing[] = L"Antialiasing";
+    // Edge smoothing (FXAA) of the Enhanced look, beside the multisampling: 1 on, 0 off.
+    inline constexpr wchar_t CfgKeyEdgeSmoothing[] = L"EdgeSmoothing";
+    // The Enhanced look's 3D scene drawn at this share of the window's size, 50 to 100 (percent), and
+    // upscaled to it (FSR 1); 100 draws at the window's size.
+    inline constexpr wchar_t CfgKeyRenderScale[] = L"RenderScale";
+    // Sharpening of the Enhanced look's 3D scene (FSR 1), 0 (none) to 100.
+    inline constexpr wchar_t CfgKeySharpness[] = L"Sharpness";
     // The Enhanced look's features the player keeps on; Classic ignores them.
     inline constexpr wchar_t CfgKeyEnhancedLighting[] = L"EnhancedLighting";
     inline constexpr wchar_t CfgKeyDynamicLights[] = L"DynamicLights";
@@ -100,7 +111,7 @@ namespace CfgDefaults
 {
     inline constexpr int  CfgDefaultWindowWidth  = 1024;
     inline constexpr int  CfgDefaultWindowHeight = 768;
-    inline constexpr bool CfgDefaultWindowed     = true;
+    inline constexpr wchar_t CfgDefaultWindowMode[] = L"Windowed";
 
     inline constexpr int  CfgDefaultSoundVolume = 5;
     inline constexpr int  CfgDefaultMusicVolume = 5;
@@ -113,6 +124,7 @@ namespace CfgDefaults
 
     inline constexpr wchar_t CfgDefaultServerIP[] = L"localhost";
     inline constexpr int CfgDefaultServerPort = 44406;
+    inline constexpr wchar_t CfgDefaultRelay[] = L"";
 
     inline constexpr int CfgDefaultZoom = 1735;  // OrbitalCamera DEFAULT_RADIUS — matches Default-cam camera-to-Hero distance
 
@@ -153,6 +165,11 @@ namespace CfgDefaults
     // The samples the Enhanced look renders with (Classic renders without); a
     // requested count is lowered to what the GPU supports.
     inline constexpr int CfgDefaultAntialiasing = 4;
+    // Off: the Enhanced look stays as it was until a player switches it on.
+    inline constexpr bool CfgDefaultEdgeSmoothing = false;
+    // The window's size and no sharpening: the Enhanced look as it was.
+    inline constexpr int CfgDefaultRenderScale = 100;
+    inline constexpr int CfgDefaultSharpness = 0;
     inline constexpr bool CfgDefaultEnhancedLighting = true;
     inline constexpr bool CfgDefaultDynamicLights = true;
     inline constexpr bool CfgDefaultSunlight = true;

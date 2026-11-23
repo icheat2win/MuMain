@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // The option definitions in memory (Data/Items/Options/*.json), their tooltip texts (OptionTexts.json) and, in the
@@ -20,6 +21,17 @@ namespace Data::Items
 // The ancient bonus definitions by the item's attackType 1 to 4, until the item sets link them (phase 10).
 constexpr std::array<std::string_view, 4> AncientBonusNames = {"ancientBonusStrength", "ancientBonusAgility",
                                                                "ancientBonusEnergy", "ancientBonusVitality"};
+
+// What the option files hold, as the editor changes and compares them: the definitions (each with its file), the
+// texts and the rules.
+struct ItemOptionFiles
+{
+    std::vector<ItemOptionDefinition> definitions;
+    ItemOptionTexts texts;
+    std::vector<OptionRule> rules;
+
+    bool operator==(const ItemOptionFiles& other) const = default;
+};
 
 // A definition's index, as an item's resolved links hold it.
 using ItemOptionIndex = std::uint16_t;
@@ -33,6 +45,16 @@ public:
     // Each option's effect (FindItemOptionEffect) and its terms' hero attributes are looked up here once.
     ItemOptionDatabase(std::vector<ItemOptionDefinition> definitions, ItemOptionTexts texts,
                        std::vector<OptionRule> rules = {});
+    explicit ItemOptionDatabase(ItemOptionFiles files)
+        : ItemOptionDatabase(std::move(files.definitions), std::move(files.texts), std::move(files.rules))
+    {
+    }
+
+    // A copy of what the files hold.
+    ItemOptionFiles GetFiles() const
+    {
+        return {m_definitions, m_texts, m_rules};
+    }
 
     std::span<const ItemOptionDefinition> GetDefinitions() const
     {
@@ -55,7 +77,7 @@ public:
 
     // The order an item takes the definition's options in, as indexes of its options: as the code before the
     // definitions tested their bits, the excellent options from the highest number down (the tooltip shows them so),
-    // the others as written. Worked out when the options load.
+    // the wing options from the lowest up, the others as written. Worked out when the options load.
     const std::vector<size_t>& GetOptionOrder(ItemOptionIndex definition) const
     {
         return m_optionOrders[definition];
@@ -84,8 +106,13 @@ public:
 
     // The definitions an item's names link, in the order they are written in and taken in (by type, then by name); a
     // name of no definition is left out (the loader reports it), and so is a second definition of a type whose byte a
-    // definition before it reads.
-    std::vector<ItemOptionIndex> ResolveLinks(std::span<const std::string> names) const;
+    // definition before it reads. Of excellent and wing options (both read the excellent byte) a link of
+    // `excellentByte`'s type counts first, whatever the take order.
+    std::vector<ItemOptionIndex> ResolveLinks(std::span<const std::string> names, ItemOptionType excellentByte) const;
+
+    // The item's links: its excellent byte holds wing options on wings (ExcellentByteMeansOther), excellent options
+    // on every other item.
+    std::vector<ItemOptionIndex> ResolveLinks(const ItemDefinition& item) const;
 
     // The names in the order ResolveLinks takes them, so a saved list is the same however it was made; names of no
     // definition go last, in the order they had.
@@ -109,4 +136,12 @@ private:
     ItemOptionTexts m_texts;
     std::vector<OptionRule> m_rules;
 };
+
+// Whether the item's excellent byte means something else than excellent options: the wings' options, the Horn of
+// Fenrir's kind (no horn is excellent).
+bool ExcellentByteMeansOther(const ItemDefinition& item);
+
+// Whether definitions of the two types read the same part of the server's item data: one type, or excellent and wing
+// options (both read the excellent byte). An item's links take one definition of each part.
+bool ReadsSameItemData(ItemOptionType left, ItemOptionType right);
 } // namespace Data::Items

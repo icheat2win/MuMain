@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Render/Effects/AuraJointLifecycle.h"
 #include "Core/Utilities/Random.h"
 #include <execution>
 #include <optional>
@@ -70,6 +71,7 @@
 #include "GameLogic/Items/ItemCategories.h"
 #include "Render/Items/ItemDisplay.h"
 #include "Render/Items/ItemRenderStyles.h"
+#include "Render/Monsters/MonsterLooks.h"
 #include "Data/GameData/ItemData/ItemModelSlots.h"
 #include "Data/GameData/ItemData/ItemType.h"
 #include "Data/GameData/MonsterData/MonsterDatabase.h"
@@ -1074,6 +1076,7 @@ void SetAttackSpeed()
     Models[MODEL_PLAYER].Actions[PLAYER_SKILL_DARKSIDE_ATTACK].PlaySpeed = 0.3f + RageAttackSpeed;
     Models[MODEL_PLAYER].Actions[PLAYER_SKILL_DRAGONKICK].PlaySpeed = 0.4f + RageAttackSpeed;
     Models[MODEL_PLAYER].Actions[PLAYER_SKILL_DRAGONLORE].PlaySpeed = 0.3f + RageAttackSpeed;
+    Models[MODEL_PLAYER].Actions[PLAYER_SKILL_PHOENIX_SHOT].PlaySpeed = 0.4f + RageAttackSpeed;
     Models[MODEL_PLAYER].Actions[PLAYER_SKILL_ATT_UP_OURFORCES].PlaySpeed = 0.35f;
     Models[MODEL_PLAYER].Actions[PLAYER_SKILL_HP_UP_OURFORCES].PlaySpeed = 0.35f;
     Models[MODEL_PLAYER].Actions[PLAYER_RAGE_FENRIR_ATTACK_RIGHT].PlaySpeed = 0.25f + RageAttackSpeed;
@@ -4933,20 +4936,8 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
                     if (!g_isCharacterBuff(to, eBuff_Defense))
                     {
                         g_CharacterRegisterBuff(to, eBuff_Defense);
-
-                        for (int j = 0; j < 5; ++j)
-                        {
-                            CreateJoint(MODEL_SPEARSKILL, to->Position, to->Position, to->Angle, 4, to, 20.0f, -1, 0, 0, c->TargetCharacter);
-                        }
                     }
-                    else if (!SearchJoint(MODEL_SPEARSKILL, to, 4)
-                        && !SearchJoint(MODEL_SPEARSKILL, to, 9))
-                    {
-                        for (int j = 0; j < 5; ++j)
-                        {
-                            CreateJoint(MODEL_SPEARSKILL, to->Position, to->Position, to->Angle, 4, to, 20.0f, -1, 0, 0, c->TargetCharacter);
-                        }
-                    }
+                    Render::Effects::SpawnDefenseAura(to, c->TargetCharacter);
                 }
                 break;
             case AT_SKILL_ATTACK:
@@ -7363,7 +7354,7 @@ void SpawnLinkedPartEffects(CHARACTER* c, int Type, OBJECT* Object, vec34_t* bon
     vec3_t Position;
     VectorCopy(position, Position);
 
-    // The item effects also reach the part's bones through its item object (TransformByObjectBone).
+    // The effects also reach the part's bones through its item object (TransformByObjectBone).
     struct ItemBones
     {
         OBJECT* object;
@@ -9768,7 +9759,7 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
     case MONSTER_MAGIC_SKELETON_6:
     case MONSTER_MAGIC_SKELETON_7:
     {
-        BOOL bRender = Calc_RenderObject(o, Translate, Select, 0);
+        BOOL bRender = Calc_RenderObject(o, Translate, Select);
 
         if (auto* pCloth = (CPhysicsCloth*)c->Object.m_pCloth)
         {
@@ -9776,7 +9767,7 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
         }
         if (bRender)
         {
-            Draw_RenderObject(o, Translate, Select, 0);
+            Draw_RenderObject(o, Translate, Select, false);
         }
     }
     break;
@@ -9835,29 +9826,18 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
         }
     }
 
+    // A monster with a render style (MN8) is drawn by it (RenderObject), not by the code's afterimage of the
+    // Dreadfear's second attack.
+    const bool styled = Render::Monsters::Looks::RenderStyleOf(*o) != nullptr;
     if (byRender == CHARACTER_RENDER_OBJ)
     {
-        if (MONSTER_METAL_BALROG == c->MonsterIndex || MONSTER_ALPHA_CRUST == c->MonsterIndex ||
-            MONSTER_GREAT_DRAKAN == c->MonsterIndex || MONSTER_WHITE_WIZARD == c->MonsterIndex ||
-            MONSTER_ORC_SOLDIER_OF_DOOM == c->MonsterIndex || MONSTER_ORC_ARCHER_OF_DOOM == c->MonsterIndex ||
-            MONSTER_MUTANT_HERO == c->MonsterIndex || MONSTER_OMEGA_WING == c->MonsterIndex ||
-            MONSTER_AXE_HERO == c->MonsterIndex || MONSTER_GIGAS_GOLEM == c->MonsterIndex ||
-            MONSTER_SCOUTHERO == c->MonsterIndex || MONSTER_WEREWOLFHERO == c->MonsterIndex ||
-            MONSTER_VALAM == c->MonsterIndex || MONSTER_SOLAM == c->MonsterIndex || MONSTER_SCOUT == c->MonsterIndex ||
-            319 == c->MonsterIndex)
+        if (!styled && c->MonsterIndex == MONSTER_DREADFEAR && o->CurrentAction == MONSTER01_ATTACK2)
         {
-            RenderObject(o, Translate, Select, c->MonsterIndex);
+            RenderObject_AfterImage(o, Translate, Select);
         }
         else
         {
-            if ((c->MonsterIndex == MONSTER_DREADFEAR && o->CurrentAction == MONSTER01_ATTACK2))
-            {
-                RenderObject_AfterImage(o, Translate, Select, 0);
-            }
-            else
-            {
-                RenderObject(o, Translate, Select, 0);
-            }
+            RenderObject(o, Translate, Select, 0);
         }
     }
 
@@ -9896,50 +9876,7 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
         }
     }
 
-    if (c->MonsterIndex == MONSTER_BALROG || c->MonsterIndex == MONSTER_GOLDEN_BUDGE_DRAGON ||
-        c->MonsterIndex == MONSTER_SILVER_VALKYRIE || c->MonsterIndex == MONSTER_ZAIKAN ||
-        c->MonsterIndex == MONSTER_METAL_BALROG || (78 <= c->MonsterIndex && c->MonsterIndex <= MONSTER_GOLDEN_WHEEL) ||
-        (c->MonsterIndex >= MONSTER_GOLDEN_DARK_KNIGHT && c->MonsterIndex <= MONSTER_GOLDEN_RABBIT))
-    {
-        vec3_t vBackupBodyLight;
-
-        float Bright = 1.f;
-        if (c->MonsterIndex == MONSTER_ZAIKAN)
-            Bright = 0.5f;
-        if (c->MonsterIndex == MONSTER_GOLDEN_BUDGE_DRAGON ||
-            (78 <= c->MonsterIndex && c->MonsterIndex <= MONSTER_GOLDEN_WHEEL) ||
-            (c->MonsterIndex >= MONSTER_GOLDEN_DARK_KNIGHT && c->MonsterIndex <= MONSTER_GOLDEN_RABBIT))
-        {
-            if (c->MonsterIndex >= MONSTER_GOLDEN_DARK_KNIGHT)
-            {
-                VectorCopy(Models[o->Type].BodyLight, vBackupBodyLight);
-                Vector(1.f, 0.6f, 0.3f, Models[o->Type].BodyLight);
-            }
-
-            if (c->MonsterIndex == MONSTER_GOLDEN_GREAT_DRAGON)
-            {
-                VectorCopy(Models[o->Type].BodyLight, vBackupBodyLight);
-                Vector(1.f, 0.0f, 0.0f, Models[o->Type].BodyLight);
-            }
-            RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_METAL | RENDER_BRIGHT, Bright);
-        }
-
-        if (c->MonsterIndex == MONSTER_METAL_BALROG)
-        {
-            RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha,
-                                      RENDER_CHROME | RENDER_BRIGHT | RENDER_EXTRA, Bright);
-        }
-        else
-        {
-            RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_CHROME | RENDER_BRIGHT, Bright);
-        }
-
-        if (c->MonsterIndex >= MONSTER_GOLDEN_DARK_KNIGHT && c->MonsterIndex <= MONSTER_GOLDEN_RABBIT)
-        {
-            VectorCopy(vBackupBodyLight, Models[o->Type].BodyLight);
-        }
-    }
-    else if (c->MonsterIndex == MONSTER_ALQUAMOS)
+    if (c->MonsterIndex == MONSTER_ALQUAMOS)
     {
         // Tints the body light below.
         const float Luminosity = (float)(Random::DrawRand(o, 1) % 30 + 70) * 0.01f;
@@ -9951,22 +9888,6 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
         if (auto* pCloth = (CPhysicsCloth*)c->Object.m_pCloth)
         {
             pCloth[0].Render();
-        }
-    }
-    else if (c->MonsterIndex == MONSTER_DRAKAN || c->MonsterIndex == MONSTER_GREAT_DRAKAN)
-    {
-        // Tints the body light below.
-        if (c->MonsterIndex == MONSTER_DRAKAN)
-            Vector(0.1f, 0.1f, 1.f, Light);
-
-        int RenderType = (c->MonsterIndex == MONSTER_DRAKAN) ? 0 : RENDER_EXTRA;
-        RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_CHROME | RENDER_BRIGHT | RenderType,
-                                  1.f);
-
-        if (c->MonsterIndex == MONSTER_DRAKAN)
-        {
-            RenderPartObjectBodyColor2(&Models[o->Type], o, o->Type, o->Alpha,
-                                       RENDER_CHROME2 | RENDER_LIGHTMAP | RENDER_BRIGHT, 1.f);
         }
     }
     else if (c->MonsterIndex == MONSTER_DARK_PHOENIX)
@@ -9992,18 +9913,8 @@ void RenderCharacter(const CHARACTER* c, const OBJECT* o, int Select)
         }
     }
 
-    if (c->MonsterIndex == MONSTER_GOLDEN_TITAN || c->MonsterIndex == MONSTER_GOLDEN_SOLDIER)
-    {
-        RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_METAL | RENDER_BRIGHT, 1.f,
-                                  BITMAP_SHINY + 1);
-    }
-
     if (RendersWingCarriedModels(c))
         RenderWingCarriedModels(c, Translate);
-    else if (c->MonsterIndex == MONSTER_WHITE_WIZARD)
-    {
-        RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_BRIGHT | RENDER_EXTRA, 1.0f);
-    }
 
     if (o->Type == MODEL_NPC_CHERRYBLOSSOM)
     {
@@ -10845,12 +10756,41 @@ void UpdateEventCharacterEffects(OBJECT* o)
 }
 } // namespace
 
+void UpdateBuffAuraEffects(CHARACTER* c, OBJECT* o, BMD* b)
+{
+    if (g_isCharacterBuff(o, eBuff_Cloaking))
+    {
+        return;
+    }
+
+    if (g_isCharacterBuff(o, eBuff_Attack) || g_isCharacterBuff(o, eBuff_HelpNpc))
+    {
+        vec3_t p, Position, Light;
+        Vector(0.f, 0.f, 0.f, p);
+        for (int i = 0; i < 2; i++)
+        {
+            const float Luminosity = (float)(Random::Rand() % 30 + 70) * 0.01f;
+            Vector(Luminosity * 1.f, Luminosity * 0.3f, Luminosity * 0.2f, Light);
+            b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone], p, Position, true);
+            CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
+            b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone - 6], p, Position, true);
+            CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
+            b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone - 7], p, Position, true);
+            CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
+        }
+    }
+
+    if (Render::Effects::HasDefenseAura(o))
+    {
+        Render::Effects::SpawnDefenseAura(o, static_cast<int>(c - CharactersClient));
+    }
+}
+
 namespace
 {
 void UpdatePlayerEffects(CHARACTER* c, OBJECT* o, BMD* b)
 {
     vec3_t p, Position, Light;
-    float Luminosity;
     // RenderCharacter's check: it also sets EquipmentLevelSet, which the set glow reads.
     const bool fullset = !c->HideShadow && CheckFullSet(c);
 
@@ -11111,45 +11051,7 @@ void UpdatePlayerEffects(CHARACTER* c, OBJECT* o, BMD* b)
         CreateSprite(BITMAP_LIGHT, vWorldPos, 1.5f, vLight, o, 0.f);
     }
 
-    if (g_isCharacterBuff(o, eBuff_Attack) || g_isCharacterBuff(o, eBuff_HelpNpc))
-    {
-        if (!g_isCharacterBuff(o, eBuff_Cloaking))
-        {
-            for (int i = 0; i < 2; i++)
-            {
-                Luminosity = (float)(Random::Rand() % 30 + 70) * 0.01f;
-                Vector(Luminosity * 1.f, Luminosity * 0.3f, Luminosity * 0.2f, Light);
-                b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone], p, Position, true);
-                CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
-                b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone - 6], p, Position, true);
-                CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
-                b->TransformPosition(o->BoneTransform[c->Weapon[i].LinkBone - 7], p, Position, true);
-                CreateSprite(BITMAP_SHINY + 1, Position, 1.5f, Light, o);
-            }
-            if (!SearchJoint(MODEL_SPEARSKILL, o, 4) && !SearchJoint(MODEL_SPEARSKILL, o, 9))
-            {
-                for (int i = 0; i < 5; i++)
-                {
-                    CreateJoint(MODEL_SPEARSKILL, o->Position, o->Position, o->Angle, 4, o, 20.0f, -1, 0, 0,
-                                c->TargetCharacter);
-                }
-            }
-        }
-    }
-    else if (g_isCharacterBuff(o, eBuff_Defense))
-    {
-        if (!g_isCharacterBuff(o, eBuff_Cloaking))
-        {
-            if (SearchJoint(MODEL_SPEARSKILL, o, 4) == false && SearchJoint(MODEL_SPEARSKILL, o, 9) == false)
-            {
-                for (int i = 0; i < 5; ++i)
-                {
-                    CreateJoint(MODEL_SPEARSKILL, o->Position, o->Position, o->Angle, 4, o, 20.0f, -1, 0, 0,
-                                c->TargetCharacter);
-                }
-            }
-        }
-    }
+    UpdateBuffAuraEffects(c, o, b);
 
     if (g_isCharacterBuff((&c->Object), eBuff_PcRoomSeal1) || g_isCharacterBuff((&c->Object), eBuff_PcRoomSeal2) ||
         g_isCharacterBuff((&c->Object), eBuff_PcRoomSeal3) || g_isCharacterBuff((&c->Object), eBuff_Seal1) ||
@@ -12706,6 +12608,9 @@ void CreateCharacterPointer(CHARACTER* c, int Type, unsigned char PositionX, uns
     c->Run = 0;
     c->GuildMarkIndex = -1;
     c->PK = PVP_NEUTRAL;
+    // A monster's setup names its looks (MN8); others have none.
+    o->RenderStyleLook = 0;
+    o->EffectLook = 0;
     o->Type = Type;
     o->Scale = 0.9f;
     o->Timer = 0.f;

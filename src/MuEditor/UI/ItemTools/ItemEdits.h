@@ -74,7 +74,7 @@ public:
     // The render style file (CItemDataHandler::SetRenderStyles) and the textures its looks name, as one step (design
     // L39); nothing when it is as it was.
     void SetRenderStyles(std::string label, Data::Looks::RenderStylesFile file);
-    // The same for the look file of `kind`: the render styles or the item effects.
+    // The same for the look file of `kind`: the render styles or the effects.
     void SetLookFile(std::string label, Data::Looks::LookKind kind, Data::Looks::LookFile file);
     // The part models (CItemDataHandler::SetPartModels), as one step; nothing when they are as they were.
     void SetPartModels(std::string label, std::vector<Data::Items::PartModel> parts);
@@ -85,6 +85,11 @@ public:
     // they are (their new stat profile), as one step. `file` must be valid.
     void SetStatFile(std::string label, const Data::Items::ItemStatFile& file,
                      std::span<const Data::Items::ItemDefinition> repointed = {});
+
+    // CItemDataHandler::SetOptions, with the items in `relinked` stored as they are (their links after a rename or a
+    // removal), as one step. `files` must be valid (ValidateItemOptionFilesAsWritten).
+    void SetOptions(std::string label, const Data::Items::ItemOptionFiles& files,
+                    std::span<const Data::Items::ItemDefinition> relinked = {});
 
     // The changes until EndGroup are one undo step under `label` (an item
     // duplicated with its model made shared). A group begun inside one is

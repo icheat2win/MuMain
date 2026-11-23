@@ -9,6 +9,8 @@ mu_add_test(
         test_item_edit_history.cpp
         test_item_ground_labels.cpp
         test_item_json.cpp
+        test_item_option_file_change.cpp
+        test_item_preview_options.cpp
         test_item_references.cpp
         test_item_list_model.cpp
         test_item_model_json.cpp
@@ -54,13 +56,17 @@ target_compile_definitions(buff_data_tests PRIVATE
     MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data"
 )
 
-# The sounds of map objects (Data/Maps/ObjectSounds.json, maps design MP1) and
-# the Map Editor's Sounds tab. The tab needs the client globals of Winmain.cpp.
+# The sounds of map objects (Data/Maps/ObjectSounds.json, maps design MP1),
+# the Map Editor's Sounds tab and the warp list (Data/Maps/Warps.json) with the
+# editor's Warp List window. The tab needs the client globals of Winmain.cpp.
 mu_add_test(
     NAME map_data_tests
     SOURCES
         test_map_object_sounds.cpp
         test_map_sounds_tab.cpp
+        test_warp_list_window.cpp
+        test_warp_rules.cpp
+        test_warps.cpp
         ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
     LINK_LIBS
         MuClient
@@ -157,6 +163,7 @@ mu_add_test(
         test_monster_item_references.cpp
         test_monster_json.cpp
         test_monster_list_model.cpp
+        test_monster_looks_json.cpp
         test_monster_model_files.cpp
         test_monster_model_values.cpp
         test_monster_models_json.cpp
@@ -239,6 +246,7 @@ mu_add_test(
         test_item_tooltip_text.cpp
         test_item_texts.cpp
         test_item_tooltips.cpp
+        test_skill_buff_values.cpp
         test_item_value_formulas.cpp
         ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
     LINK_LIBS
@@ -353,7 +361,7 @@ target_compile_definitions(player_model_selector_tests PRIVATE
     MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data"
 )
 
-# Render styles as data (docs/item-data.md, "Render styles and item effects"): the look file, the layers' drawing
+# Render styles as data (docs/item-data.md, "Render styles and effects"): the look file, the layers' drawing
 # and the comparison of each moved look with its old code, on the item models of the test data.
 mu_add_test(
     NAME render_style_tests
@@ -363,6 +371,7 @@ mu_add_test(
         test_look_effects.cpp
         test_look_drawing.cpp
         test_look_recorder.cpp
+        test_bone_things_preview.cpp
         LookRecorder.cpp
         ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
     LINK_LIBS
@@ -371,6 +380,7 @@ mu_add_test(
 target_compile_definitions(render_style_tests PRIVATE
     MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data"
     MU_RENDER_STYLE_BASELINE="${CMAKE_CURRENT_SOURCE_DIR}/baseline/RenderStyleDraws.txt"
+    MU_SPAWN_BASELINE="${CMAKE_CURRENT_SOURCE_DIR}/baseline/ItemEffectSpawns.txt"
 )
 
 # Each case of the data tests once more, with the shipped client data read from a storage of the test's own and the

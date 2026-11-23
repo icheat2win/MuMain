@@ -1024,9 +1024,6 @@
   <data name="Translate Item Names" xml:space="preserve">
     <value>翻譯物品名稱</value>
   </data>
-  <data name="Windowed mode" xml:space="preserve">
-    <value>視窗模式</value>
-  </data>
   <data name="Close388" xml:space="preserve">
     <value>關閉</value>
   </data>
@@ -9114,5 +9111,14 @@
   </data>
   <data name="Guild members as guild master: %d" xml:space="preserve">
     <value>作為公會會長的成員上限: %d</value>
+  </data>
+  <data name="WarpBlockedByEquipment" xml:space="preserve">
+    <value>你無法攜帶目前的裝備傳送到那裡。</value>
+  </data>
+  <data name="Warp master level %d" xml:space="preserve">
+    <value>大師 %d</value>
+  </data>
+  <data name="Warp resets %d" xml:space="preserve">
+    <value>轉生 %d</value>
   </data>
 </root>

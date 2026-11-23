@@ -19,6 +19,7 @@
 #include "Data/GameData/ItemData/ItemModelDatabase.h"
 #include "Data/GameData/ItemData/ItemModelJsonFormat.h"
 #include "Data/GameData/ItemData/ItemOptionValidation.h"
+#include "Data/GameData/ItemData/ItemOptionsJson.h"
 #include "Data/GameData/ItemData/OptionRule.h"
 #include "Data/GameData/ItemData/ItemTypeUse.h"
 #include "Data/GameData/ItemData/ItemNames.h"
@@ -217,9 +218,7 @@ void GiveModelsAnEntry()
 #endif
 } // namespace
 
-CItemDataHandler::CItemDataHandler()
-{
-}
+CItemDataHandler::CItemDataHandler() {}
 
 CItemDataHandler& CItemDataHandler::GetInstance()
 {
@@ -302,6 +301,9 @@ bool CItemDataHandler::Load(std::string& errorMessage)
     m_statFileChanged = false;
     m_groundLabelsChanged = false;
     m_nameCasesChanged = false;
+    m_optionFiles.clear();
+    AddDefinitionFiles(options.GetDefinitions(), m_optionFiles);
+    m_optionsChanged = false;
 #endif
 
     const auto buildStart = std::chrono::steady_clock::now();
@@ -398,7 +400,12 @@ void CItemDataHandler::RegisterLocaleObserver()
 
 void CItemDataHandler::OnLocaleChanged(void* context) noexcept
 {
-    static_cast<CItemDataHandler*>(context)->RefreshItemNames();
+    auto* handler = static_cast<CItemDataHandler*>(context);
+    // The observer stays registered; item data that no longer counts as loaded (ForgetLoadForTest) fills nothing.
+    if (handler->m_loaded)
+    {
+        handler->RefreshItemNames();
+    }
 }
 
 void CItemDataHandler::SetTranslateItemNames(bool translate)
@@ -926,9 +933,9 @@ void CItemDataHandler::FollowDerivedFieldsAfterMove(const ItemDefinition& before
     }
 }
 
-void CItemDataHandler::SetLookNames(LookNameExists renderStyleExists, LookNameExists itemEffectExists)
+void CItemDataHandler::SetLookNames(LookNameExists renderStyleExists, LookNameExists effectExists)
 {
-    m_lookNames = LookNames{renderStyleExists, itemEffectExists};
+    m_lookNames = LookNames{renderStyleExists, effectExists};
 }
 
 void CItemDataHandler::Validate(std::vector<ItemDataIssue>& issues) const
@@ -962,6 +969,10 @@ void CItemDataHandler::Validate(std::vector<ItemDataIssue>& issues) const
     {
         ValidateGroundLabelsAsWritten(g_ItemDatabase.GetGroundLabels(), issues);
     }
+    if (m_optionsChanged)
+    {
+        ValidateItemOptionFilesAsWritten(g_ItemDatabase.GetOptions().GetFiles(), issues);
+    }
 
     std::vector<ItemModelDefinition> models;
     std::ranges::copy_if(g_ItemModelDatabase.GetAllSlots(), std::back_inserter(models), &ItemModelDefinition::Exists);
@@ -978,7 +989,7 @@ void CItemDataHandler::Validate(std::vector<ItemDataIssue>& issues) const
     }
     if (m_lookNames)
     {
-        ValidateItemModelLooks(models, m_lookNames->renderStyle, m_lookNames->itemEffect, issues);
+        ValidateItemModelLooks(models, m_lookNames->renderStyle, m_lookNames->effect, issues);
     }
     ValidateDirectlySharedModelFiles(models, issues);
     ValidateItemModelsAsWritten(g_ItemModelDatabase.GetAllSlots(), issues);
@@ -1020,7 +1031,7 @@ ItemDataSaveResult CItemDataHandler::Save(std::vector<ItemDataIssue>& issues,
     models.groundLabels = &g_ItemDatabase.GetGroundLabels();
     models.groundLabelsChanged = m_groundLabelsChanged;
     // The look files as the Style Editor changed them (design L39), when the read could use the whole file.
-    for (const Data::Looks::LookKind kind : {Data::Looks::LookKind::RenderStyle, Data::Looks::LookKind::ItemEffect})
+    for (const Data::Looks::LookKind kind : {Data::Looks::LookKind::RenderStyle, Data::Looks::LookKind::Effect})
     {
         const LookFileState& state = m_lookFiles[static_cast<std::size_t>(kind)];
         if (!state.changed || !state.complete)
@@ -1045,7 +1056,21 @@ ItemDataSaveResult CItemDataHandler::Save(std::vector<ItemDataIssue>& issues,
     models.nameCasesFile = GetItemNameCasesFile();
     models.nameCases = &g_ItemDatabase.GetNameCases();
     models.nameCasesChanged = m_nameCasesChanged;
-    return WriteItemAndModelDataDirectories(GetItemDataDirectory(), g_ItemDatabase.GetAllSlots(), models, issues);
+    const ItemOptionFiles optionFiles = g_ItemDatabase.GetOptions().GetFiles();
+    models.optionsDirectory = GetItemOptionsDirectory();
+    models.optionRulesFile = GetOptionRulesFile();
+    models.optionTextsFile = GetOptionTextsFile();
+    models.options = &optionFiles;
+    models.optionFiles = m_optionFiles;
+    models.optionsChanged = m_optionsChanged;
+    const ItemDataSaveResult result =
+        WriteItemAndModelDataDirectories(GetItemDataDirectory(), g_ItemDatabase.GetAllSlots(), models, issues);
+    if (result == ItemDataSaveResult::Saved && m_optionsChanged)
+    {
+        // The definition files written are in the folder now: one whose last definition goes later is written empty.
+        AddDefinitionFiles(optionFiles.definitions, m_optionFiles);
+    }
+    return result;
 }
 
 void CItemDataHandler::SetStatFile(const ItemStatFile& file)
@@ -1053,6 +1078,12 @@ void CItemDataHandler::SetStatFile(const ItemStatFile& file)
     m_statFile = InWriterOrder(file);
     m_statFileChanged = true;
     g_ItemDatabase.SetStatProfiles(ItemStatProfiles(m_statFile));
+}
+
+void CItemDataHandler::SetOptions(const ItemOptionFiles& files)
+{
+    g_ItemDatabase.SetOptions(ItemOptionDatabase(files));
+    m_optionsChanged = true;
 }
 
 void CItemDataHandler::SetNameCases(const ItemNameCases& cases)

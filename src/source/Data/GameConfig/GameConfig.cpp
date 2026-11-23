@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <optional>
 
 #include "GameConfigConstants.h"
 #include "GameConfigValidation.h"
@@ -97,7 +98,7 @@ void GameConfig::Load()
 
     m_windowWidth  = ReadInt(CfgSectionWindow, CfgKeyWidth, CfgDefaultWindowWidth);
     m_windowHeight = ReadInt(CfgSectionWindow, CfgKeyHeight, CfgDefaultWindowHeight);
-    m_windowMode   = ReadBool(CfgSectionWindow, CfgKeyWindowed, CfgDefaultWindowed);
+    m_windowMode = ReadWindowMode();
 
     m_soundVolume  = ReadInt(CfgSectionAudio, CfgKeySoundVolume, CfgDefaultSoundVolume);
     m_musicVolume  = ReadInt(CfgSectionAudio, CfgKeyMusicVolume, CfgDefaultMusicVolume);
@@ -112,6 +113,13 @@ void GameConfig::Load()
         ReadString(CfgSectionConnectionSettings, CfgKeyServerIP, CfgDefaultServerIP), CfgDefaultServerIP);
     m_serverPort = GameConfigValidation::ValidateServerPort(
         ReadInt(CfgSectionConnectionSettings, CfgKeyServerPort, CfgDefaultServerPort), CfgDefaultServerPort);
+    const std::wstring relay = ReadString(CfgSectionConnectionSettings, CfgKeyRelay, CfgDefaultRelay);
+    m_relay = GameConfigValidation::ValidateRelay(relay);
+    if (m_relay.empty() && !GameConfigValidation::ValidateServerIP(relay, L"").empty())
+    {
+        mu::log::Get("core")->error(
+            "config.ini: Relay is not a ws:// or wss:// address with a host; connecting over TCP");
+    }
 
     m_chatCommandFavourites = ReadStringList(L"ChatCommands", L"Favourite");
     m_chatCommandTemplates = ReadStringList(L"ChatCommands", L"Template");
@@ -126,32 +134,7 @@ void GameConfig::Load()
         ReadBool(CfgSectionUI, CfgKeyEnableAnimationTaskPool, CfgDefaultEnableAnimationTaskPool);
 
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
-    m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
-    m_vsyncEnabled = ReadBool(CfgSectionRender, CfgKeyVSync, CfgDefaultVSync);
-    m_look = ReadLookPreset(m_configPath);
-    m_anisotropy =
-        GameConfigValidation::ValidateAnisotropy(ReadInt(CfgSectionRender, CfgKeyAnisotropy, CfgDefaultAnisotropy));
-    m_antialiasing = GameConfigValidation::ValidateAntialiasing(
-        ReadInt(CfgSectionRender, CfgKeyAntialiasing, CfgDefaultAntialiasing));
-    m_enhancedLighting = ReadBool(CfgSectionRender, CfgKeyEnhancedLighting, CfgDefaultEnhancedLighting);
-    m_dynamicLights = ReadBool(CfgSectionRender, CfgKeyDynamicLights, CfgDefaultDynamicLights);
-    m_sunlight = ReadBool(CfgSectionRender, CfgKeySunlight, CfgDefaultSunlight);
-    m_lightMood = ReadBool(CfgSectionRender, CfgKeyLightMood, CfgDefaultLightMood);
-    m_postProcessing = ReadBool(CfgSectionRender, CfgKeyPostProcessing, CfgDefaultPostProcessing);
-    m_enhancedMovement = ReadBool(CfgSectionRender, CfgKeyEnhancedMovement, CfgDefaultEnhancedMovement);
-
-    m_renderBackend = GameConfigValidation::ValidateRenderBackend(
-        ReadString(CfgSectionRender, CfgKeyRenderBackend, CfgDefaultRenderBackend), CfgDefaultRenderBackend);
-    m_disableEffects = ReadBool(CfgSectionRender, CfgKeyDisableEffects, CfgDefaultDisableEffects);
-    m_disableParticles = ReadBool(CfgSectionRender, CfgKeyDisableParticles, CfgDefaultDisableParticles);
-    m_disableSkillEffectModels =
-        ReadBool(CfgSectionRender, CfgKeyDisableSkillEffectModels, CfgDefaultDisableSkillEffectModels);
-    m_disableBoids = ReadBool(CfgSectionRender, CfgKeyDisableBoids, CfgDefaultDisableBoids);
-    m_disableWingShadow = ReadBool(CfgSectionRender, CfgKeyDisableWingShadow, CfgDefaultDisableWingShadow);
-    m_disableBodyShadows = ReadBool(CfgSectionRender, CfgKeyDisableBodyShadows, CfgDefaultDisableBodyShadows);
-    m_fpsCap = ReadInt(CfgSectionRender, CfgKeyFpsCap, CfgDefaultFpsCap);
-    m_texturePack = ReadString(CfgSectionRender, CfgKeyTexturePack, CfgDefaultTexturePack);
-    m_useS6PlayerModels = ReadBool(CfgSectionRender, CfgKeyUseS6PlayerModels, CfgDefaultUseS6PlayerModels);
+    LoadRenderSettings();
 
     // Strip keys/sections we used to write but no longer use, so user config
     // files don't accumulate orphans. Append one line per retired key — no
@@ -175,7 +158,9 @@ void GameConfig::Save()
 
     WriteInt(CfgSectionWindow, CfgKeyWidth, m_windowWidth);
     WriteInt(CfgSectionWindow, CfgKeyHeight, m_windowHeight);
-    WriteBool(CfgSectionWindow, CfgKeyWindowed, m_windowMode);
+    WriteString(CfgSectionWindow, CfgKeyWindowMode, GameConfigValidation::FormatWindowMode(m_windowMode));
+    // Mode replaces it; removed only now that Mode is written, so an older config.ini keeps its choice.
+    RemoveObsoleteKey(CfgSectionWindow, CfgKeyWindowed);
 
     WriteInt(CfgSectionAudio, CfgKeySoundVolume, m_soundVolume);
     WriteInt(CfgSectionAudio, CfgKeyMusicVolume, m_musicVolume);
@@ -188,6 +173,7 @@ void GameConfig::Save()
 
     WriteString(CfgSectionConnectionSettings, CfgKeyServerIP, m_serverIP);
     WriteInt(CfgSectionConnectionSettings, CfgKeyServerPort, m_serverPort);
+    WriteString(CfgSectionConnectionSettings, CfgKeyRelay, m_relay);
 
     WriteStringList(L"ChatCommands", L"Favourite", m_chatCommandFavourites);
     WriteStringList(L"ChatCommands", L"Template", m_chatCommandTemplates);
@@ -199,10 +185,60 @@ void GameConfig::Save()
     WriteInt(CfgSectionUI, CfgKeyUIScalePercent, m_uiScalePercent);
 
     WriteInt(CfgSectionCamera, CfgKeyZoom, m_zoom);
+    SaveRenderSettings();
+}
+
+void GameConfig::LoadRenderSettings()
+{
+    using namespace CfgSections;
+    using namespace CfgKeys;
+    using namespace CfgDefaults;
+
+    m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
+    m_vsyncEnabled = ReadBool(CfgSectionRender, CfgKeyVSync, CfgDefaultVSync);
+    m_look = ReadLookPreset(m_configPath);
+    m_anisotropy =
+        GameConfigValidation::ValidateAnisotropy(ReadInt(CfgSectionRender, CfgKeyAnisotropy, CfgDefaultAnisotropy));
+    m_antialiasing = GameConfigValidation::ValidateAntialiasing(
+        ReadInt(CfgSectionRender, CfgKeyAntialiasing, CfgDefaultAntialiasing));
+    m_edgeSmoothing = ReadBool(CfgSectionRender, CfgKeyEdgeSmoothing, CfgDefaultEdgeSmoothing);
+    m_renderScale =
+        GameConfigValidation::ValidateRenderScale(ReadInt(CfgSectionRender, CfgKeyRenderScale, CfgDefaultRenderScale));
+    m_sharpness =
+        GameConfigValidation::ValidateSharpness(ReadInt(CfgSectionRender, CfgKeySharpness, CfgDefaultSharpness));
+    m_enhancedLighting = ReadBool(CfgSectionRender, CfgKeyEnhancedLighting, CfgDefaultEnhancedLighting);
+    m_dynamicLights = ReadBool(CfgSectionRender, CfgKeyDynamicLights, CfgDefaultDynamicLights);
+    m_sunlight = ReadBool(CfgSectionRender, CfgKeySunlight, CfgDefaultSunlight);
+    m_lightMood = ReadBool(CfgSectionRender, CfgKeyLightMood, CfgDefaultLightMood);
+    m_postProcessing = ReadBool(CfgSectionRender, CfgKeyPostProcessing, CfgDefaultPostProcessing);
+    m_enhancedMovement = ReadBool(CfgSectionRender, CfgKeyEnhancedMovement, CfgDefaultEnhancedMovement);
+
+    m_renderBackend = GameConfigValidation::ValidateRenderBackend(
+        ReadString(CfgSectionRender, CfgKeyRenderBackend, CfgDefaultRenderBackend), CfgDefaultRenderBackend);
+    m_disableEffects = ReadBool(CfgSectionRender, CfgKeyDisableEffects, CfgDefaultDisableEffects);
+    m_disableParticles = ReadBool(CfgSectionRender, CfgKeyDisableParticles, CfgDefaultDisableParticles);
+    m_disableSkillEffectModels =
+        ReadBool(CfgSectionRender, CfgKeyDisableSkillEffectModels, CfgDefaultDisableSkillEffectModels);
+    m_disableBoids = ReadBool(CfgSectionRender, CfgKeyDisableBoids, CfgDefaultDisableBoids);
+    m_disableWingShadow = ReadBool(CfgSectionRender, CfgKeyDisableWingShadow, CfgDefaultDisableWingShadow);
+    m_disableBodyShadows = ReadBool(CfgSectionRender, CfgKeyDisableBodyShadows, CfgDefaultDisableBodyShadows);
+    m_fpsCap = ReadInt(CfgSectionRender, CfgKeyFpsCap, CfgDefaultFpsCap);
+    m_texturePack = ReadString(CfgSectionRender, CfgKeyTexturePack, CfgDefaultTexturePack);
+    m_useS6PlayerModels = ReadBool(CfgSectionRender, CfgKeyUseS6PlayerModels, CfgDefaultUseS6PlayerModels);
+}
+
+void GameConfig::SaveRenderSettings()
+{
+    using namespace CfgSections;
+    using namespace CfgKeys;
+
     WriteBool(CfgSectionRender, CfgKeyVSync, m_vsyncEnabled);
     WriteString(CfgSectionRender, CfgKeyLook, GameConfigValidation::FormatLook(m_look));
     WriteInt(CfgSectionRender, CfgKeyAnisotropy, m_anisotropy);
     WriteInt(CfgSectionRender, CfgKeyAntialiasing, m_antialiasing);
+    WriteBool(CfgSectionRender, CfgKeyEdgeSmoothing, m_edgeSmoothing);
+    WriteInt(CfgSectionRender, CfgKeyRenderScale, m_renderScale);
+    WriteInt(CfgSectionRender, CfgKeySharpness, m_sharpness);
     WriteBool(CfgSectionRender, CfgKeyEnhancedLighting, m_enhancedLighting);
     WriteBool(CfgSectionRender, CfgKeyDynamicLights, m_dynamicLights);
     WriteBool(CfgSectionRender, CfgKeySunlight, m_sunlight);
@@ -272,9 +308,22 @@ void GameConfig::SetWindowSize(int width, int height)
     m_windowHeight = height;
 }
 
-void GameConfig::SetWindowMode(bool windowed)
+void GameConfig::SetWindowMode(WindowMode mode)
 {
-    m_windowMode = windowed;
+    m_windowMode = mode;
+}
+
+WindowMode GameConfig::ReadWindowMode()
+{
+    using namespace CfgSections;
+    using namespace CfgKeys;
+
+    std::optional<bool> legacyWindowed;
+    if (!ReadString(CfgSectionWindow, CfgKeyWindowed, L"").empty())
+    {
+        legacyWindowed = ReadBool(CfgSectionWindow, CfgKeyWindowed, true);
+    }
+    return GameConfigValidation::ResolveWindowMode(ReadString(CfgSectionWindow, CfgKeyWindowMode, L""), legacyWindowed);
 }
 
 void GameConfig::SetSoundVolume(int level)
@@ -305,6 +354,16 @@ void GameConfig::SetAnisotropy(int anisotropy)
 void GameConfig::SetAntialiasing(int samples)
 {
     m_antialiasing = GameConfigValidation::ValidateAntialiasing(samples);
+}
+
+void GameConfig::SetRenderScale(int percent)
+{
+    m_renderScale = GameConfigValidation::ValidateRenderScale(percent);
+}
+
+void GameConfig::SetSharpness(int percent)
+{
+    m_sharpness = GameConfigValidation::ValidateSharpness(percent);
 }
 
 void GameConfig::SetDisableEffects(bool disabled)
@@ -495,6 +554,12 @@ void GameConfig::DecryptCredentials(wchar_t* outUser, wchar_t* outPass, size_t u
 }
 
 // Helper functions using Windows INI API
+void GameConfig::WriteEntry(const wchar_t* section, const wchar_t* key, const wchar_t* value)
+{
+    WritePrivateProfileStringW(section, key, value, m_configPath.wstring().c_str());
+    Core::Platform::UserFilesChanged();
+}
+
 int GameConfig::ReadInt(const wchar_t* section, const wchar_t* key, int defaultValue) const
 {
     return GetPrivateProfileIntW(section, key, defaultValue, m_configPath.wstring().c_str());
@@ -505,7 +570,7 @@ void GameConfig::WriteInt(const wchar_t* section, const wchar_t* key, int value)
     wchar_t buffer[32];
     swprintf_s(buffer, L"%d", value);
 
-    WritePrivateProfileStringW(section, key, buffer, m_configPath.wstring().c_str());
+    WriteEntry(section, key, buffer);
 }
 
 bool GameConfig::ReadBool(const wchar_t* section, const wchar_t* key, bool defaultValue) const
@@ -515,7 +580,7 @@ bool GameConfig::ReadBool(const wchar_t* section, const wchar_t* key, bool defau
 
 void GameConfig::WriteBool(const wchar_t* section, const wchar_t* key, bool value)
 {
-    WritePrivateProfileStringW(section, key, value ? L"1" : L"0", m_configPath.wstring().c_str());
+    WriteEntry(section, key, value ? L"1" : L"0");
 }
 
 std::wstring GameConfig::ReadString(const wchar_t* section, const wchar_t* key, const std::wstring& defaultValue)
@@ -534,19 +599,19 @@ std::wstring GameConfig::ReadString(const wchar_t* section, const wchar_t* key, 
 
 void GameConfig::WriteString(const wchar_t* section, const wchar_t* key, const std::wstring& value)
 {
-    WritePrivateProfileStringW(section, key, value.c_str(), m_configPath.wstring().c_str());
+    WriteEntry(section, key, value.c_str());
 }
 
 void GameConfig::RemoveObsoleteKey(const wchar_t* section, const wchar_t* key)
 {
     // Passing nullptr as the value deletes the key (Windows INI API).
-    WritePrivateProfileStringW(section, key, nullptr, m_configPath.wstring().c_str());
+    WriteEntry(section, key, nullptr);
 }
 
 void GameConfig::RemoveObsoleteSection(const wchar_t* section)
 {
     // Passing nullptr as the key deletes the entire section.
-    WritePrivateProfileStringW(section, nullptr, nullptr, m_configPath.wstring().c_str());
+    WriteEntry(section, nullptr, nullptr);
 }
 
 std::wstring GameConfig::DecryptSetting(const std::wstring& hexInput)

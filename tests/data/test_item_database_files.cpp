@@ -374,6 +374,16 @@ TEST_CASE("Every shipped item's option list is the one the option rules give [da
         withOptions += item.options.empty() ? 0 : 1;
     }
     CHECK(withOptions > 400);
+
+    // A second or third tier wing no rule names by number gets its tier's wing options and luck.
+    ItemDefinition newWing;
+    newWing.group = 12;
+    newWing.number = 44;
+    newWing.slot = Data::Items::ItemSlot::Wings;
+    newWing.wingTier = Data::Items::WingTier::Third;
+    CHECK(DeriveItemOptions(rules.rules, newWing) == std::vector<std::string>{"thirdTierWing", "luck"});
+    newWing.wingTier = Data::Items::WingTier::Second;
+    CHECK(DeriveItemOptions(rules.rules, newWing) == std::vector<std::string>{"secondTierWing", "luck"});
 }
 
 // The shipped tooltip file, read once.
@@ -1938,10 +1948,11 @@ TEST_CASE("Item editor changes go into the item database [data][items][editor]")
 
     SUBCASE("a moved item's option list follows its new number")
     {
-        // The rules give luck to the Wings of Elf (12/0), not to a number of group 12 no rule names.
+        // The rules give the Wings of Elf (12/0) luck and its additional option, not a number of group 12 no rule
+        // names.
         const int emptyWingType = MakeItemType(12, 300);
         REQUIRE(g_ItemDatabase.Find(emptyWingType) == nullptr);
-        REQUIRE(g_ItemDatabase.Find(ITEM_WINGS_OF_ELF)->options == std::vector<std::string>{"luck"});
+        REQUIRE(g_ItemDatabase.Find(ITEM_WINGS_OF_ELF)->options == std::vector<std::string>{"luck", "wingsOfElf"});
         std::swap(ItemAttribute[ITEM_WINGS_OF_ELF], ItemAttribute[emptyWingType]);
         g_ItemDataHandler.OnItemsSwapped(ITEM_WINGS_OF_ELF, emptyWingType);
         CHECK(g_ItemDatabase.Find(emptyWingType)->options.empty());
@@ -2128,14 +2139,14 @@ TEST_CASE("Item editor changes go into the item database [data][items][editor]")
 }
 
 // Save Items writes the look files the Style Editor changed, each only when it changed (design L39).
-TEST_CASE("Saving writes ItemEffects.json when the item effects changed, and RenderStyles.json only when its looks did "
+TEST_CASE("Saving writes Effects.json when the effects changed, and RenderStyles.json only when its looks did "
           "[data][items][editor]")
 {
     TemporaryClientFolder folder;
     folder.CopyShippedItems();
     folder.CopyShippedGlowLists();
     const std::filesystem::path effects = folder.Directory() / "Data" / "Effects";
-    for (const char* file : {"RenderStyles.json", "ItemEffects.json"})
+    for (const char* file : {"RenderStyles.json", "Effects.json"})
     {
         std::filesystem::copy_file(ShippedClientDirectory / "Data" / "Effects" / file, effects / file);
     }
@@ -2151,17 +2162,17 @@ TEST_CASE("Saving writes ItemEffects.json when the item effects changed, and Ren
     REQUIRE_MESSAGE(g_ItemDataHandler.LoadModels(errorMessage), errorMessage);
     g_ItemDataHandler.ForgetRenderStylesForTest();
 
-    Data::Looks::LookFile file = g_ItemDataHandler.GetLookFile(Data::Looks::LookKind::ItemEffect);
+    Data::Looks::LookFile file = g_ItemDataHandler.GetLookFile(Data::Looks::LookKind::Effect);
     REQUIRE_FALSE(file.looks.empty());
     file.looks[0].objectLight = std::array<Data::Looks::Number, 3>{0.25f, 0.5f, 0.75f};
-    g_ItemDataHandler.SetLookFile(Data::Looks::LookKind::ItemEffect, file);
+    g_ItemDataHandler.SetLookFile(Data::Looks::LookKind::Effect, file);
 
     std::vector<ItemDataIssue> issues;
     CHECK(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::Saved);
     Data::Looks::LookFile saved;
     std::vector<ItemDataIssue> readIssues;
-    Data::Looks::ReadLookFile(TestFiles::ReadWholeFile(effects / "ItemEffects.json"), "ItemEffects.json",
-                              Data::Looks::LookKind::ItemEffect, saved, readIssues);
+    Data::Looks::ReadLookFile(TestFiles::ReadWholeFile(effects / "Effects.json"), "Effects.json",
+                              Data::Looks::LookKind::Effect, saved, readIssues);
     CHECK_FALSE(HasFatal(readIssues));
     CHECK(saved.looks == file.looks);
     CHECK(TestFiles::ReadWholeFile(effects / "RenderStyles.json") == renderStylesText);
@@ -4387,11 +4398,11 @@ TEST_CASE("The editor's checks report problems of the item models [data][items][
     SUBCASE("a look that does not exist")
     {
         kris.renderStyle = "noSuchStyle";
-        kris.itemEffect = "noSuchEffect";
+        kris.effect = "noSuchEffect";
         g_ItemModelDatabase.Set(kris, g_GlowColors);
         g_ItemDataHandler.Validate(issues);
         CHECK(HasIssue(issues, ItemDataIssueSeverity::Warning, 0, 0, "renderStyle"));
-        CHECK(HasIssue(issues, ItemDataIssueSeverity::Warning, 0, 0, "itemEffect"));
+        CHECK(HasIssue(issues, ItemDataIssueSeverity::Warning, 0, 0, "effect"));
         CHECK_FALSE(HasFatal(issues));
     }
     SUBCASE("a value the model file reader refuses")
@@ -4521,6 +4532,191 @@ TEST_CASE("Save Items writes the name cases file when the editor changed it [dat
         CHECK(saved.issues.empty());
         CHECK(saved.cases == changed);
     }
+}
+
+namespace
+{
+ItemOptionDefinition& FindOptionDefinition(ItemOptionFiles& files, std::string_view name)
+{
+    const auto found = std::ranges::find(files.definitions, name, &ItemOptionDefinition::name);
+    REQUIRE(found != files.definitions.end());
+    return *found;
+}
+} // namespace
+
+TEST_CASE("Save Items writes the option files when the editor changed them [data][items][editor][options]")
+{
+    TemporaryClientFolder folder;
+    folder.CopyShippedItems();
+    ClientDataScope client(folder.Directory());
+    ItemOptionsScope restoreOptions;
+    I18N::SetLocale("en");
+    std::string errorMessage;
+    REQUIRE(g_ItemDataHandler.Load(errorMessage));
+    const std::filesystem::path optionsDirectory = folder.Directory() / GetItemOptionsDirectory();
+    const std::filesystem::path rulesFile = folder.Directory() / GetOptionRulesFile();
+    const std::filesystem::path textsFile = folder.Directory() / GetOptionTextsFile();
+    const std::string optionText = TestFiles::ReadWholeFile(optionsDirectory / "Option.json");
+    const std::string ancientText = TestFiles::ReadWholeFile(optionsDirectory / "Ancient.json");
+    const std::string rulesText = TestFiles::ReadWholeFile(rulesFile);
+    const std::string textsText = TestFiles::ReadWholeFile(textsFile);
+
+    SUBCASE("unchanged, they are left as they are")
+    {
+        std::vector<ItemDataIssue> issues;
+        REQUIRE(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::Saved);
+        CHECK(TestFiles::ReadWholeFile(optionsDirectory / "Option.json") == optionText);
+        CHECK(TestFiles::ReadWholeFile(rulesFile) == rulesText);
+        CHECK(TestFiles::ReadWholeFile(textsFile) == textsText);
+    }
+
+    SUBCASE("changed, each file is written and reads back the same")
+    {
+        ItemOptionFiles changed = g_ItemDatabase.GetOptions().GetFiles();
+        FindOptionDefinition(changed, "physicalDamageOption").options.front().value.values = {4,  8,  12, 16,
+                                                                                               20, 24, 28};
+        // A file whose last definition goes is written without definitions.
+        std::erase_if(changed.definitions,
+                      [](const ItemOptionDefinition& definition) { return definition.file == "Ancient.json"; });
+        g_ItemDataHandler.SetOptions(changed);
+        CHECK(g_ItemDatabase.GetOptions().GetFiles() == changed);
+
+        std::vector<ItemDataIssue> issues;
+        REQUIRE(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::Saved);
+        const ItemOptionsLoadResult saved = LoadItemOptionsDirectory(optionsDirectory);
+        CHECK_FALSE(HasFatal(saved.issues));
+        CHECK(saved.definitions == changed.definitions);
+        CHECK(TestFiles::ReadWholeFile(optionsDirectory / "Option.json") != optionText);
+        CHECK(TestFiles::ReadWholeFile(optionsDirectory / "Ancient.json") != ancientText);
+        CHECK(TestFiles::ReadWholeFile(rulesFile) == rulesText);
+        CHECK(TestFiles::ReadWholeFile(textsFile) == textsText);
+    }
+
+    SUBCASE("a file a save added is written empty when its last definition goes later")
+    {
+        ItemOptionFiles added = g_ItemDatabase.GetOptions().GetFiles();
+        ItemOptionDefinition definition = FindOptionDefinition(added, "physicalDamageOption");
+        definition.name = "addedDamageOption";
+        definition.file = "Added.json";
+        definition.openMu = {};
+        added.definitions.push_back(definition);
+        g_ItemDataHandler.SetOptions(added);
+        std::vector<ItemDataIssue> issues;
+        REQUIRE(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::Saved);
+        const std::string addedText = TestFiles::ReadWholeFile(optionsDirectory / "Added.json");
+        CHECK(addedText.find("addedDamageOption") != std::string::npos);
+
+        added.definitions.pop_back();
+        g_ItemDataHandler.SetOptions(added);
+        issues.clear();
+        REQUIRE(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::Saved);
+        CHECK(TestFiles::ReadWholeFile(optionsDirectory / "Added.json").find("addedDamageOption") == std::string::npos);
+        const ItemOptionsLoadResult saved = LoadItemOptionsDirectory(optionsDirectory);
+        CHECK(saved.definitions == added.definitions);
+    }
+
+    SUBCASE("invalid as written, they stop the save")
+    {
+        ItemOptionFiles invalid = g_ItemDatabase.GetOptions().GetFiles();
+        ItemOptionDefinition& bonus = FindOptionDefinition(invalid, "ancientBonusStrength");
+        // An ancient bonus has one option; the reader stops on a second.
+        bonus.options.push_back(bonus.options.front());
+        g_ItemDataHandler.SetOptions(invalid);
+
+        std::vector<ItemDataIssue> issues;
+        CHECK(g_ItemDataHandler.Save(issues) == ItemDataSaveResult::InvalidData);
+        CHECK(std::ranges::any_of(issues,
+                                  [](const ItemDataIssue& issue)
+                                  {
+                                      return issue.severity == ItemDataIssueSeverity::Fatal &&
+                                             issue.source == "Options/Ancient.json";
+                                  }));
+        CHECK(TestFiles::ReadWholeFile(optionsDirectory / "Ancient.json") == ancientText);
+    }
+}
+
+TEST_CASE("The shipped option files pass their checks as written, and a rule naming no definition fails them "
+          "[data][items][options]")
+{
+    const ItemOptionsLoadResult definitions = LoadItemOptionsDirectory(DataDirectory / "Items" / "Options");
+    const OptionTextsLoadResult texts =
+        LoadOptionTextsFile(DataDirectory / "Items" / "Tooltips" / OptionTextsFileName);
+    const OptionRulesLoadResult rules = LoadOptionRulesFile(DataDirectory / "Items" / "Options" / OptionRulesFileName);
+    ItemOptionFiles files{definitions.definitions, texts.texts, rules.rules};
+
+    std::vector<ItemDataIssue> issues;
+    ValidateItemOptionFilesAsWritten(files, issues);
+    CHECK_FALSE(HasFatal(issues));
+
+    // The items pick the ancient bonus definitions by name: a missing one is reported.
+    ItemOptionFiles withoutBonus = files;
+    std::erase_if(withoutBonus.definitions,
+                  [](const ItemOptionDefinition& definition) { return definition.name == "ancientBonusStrength"; });
+    issues.clear();
+    ValidateItemOptionFilesAsWritten(withoutBonus, issues);
+    CHECK_FALSE(HasFatal(issues));
+    CHECK(std::ranges::any_of(issues,
+                              [](const ItemDataIssue& issue)
+                              {
+                                  return issue.severity == ItemDataIssueSeverity::Warning &&
+                                         issue.message.find("ancientBonusStrength") != std::string::npos;
+                              }));
+
+    files.rules.front().options = {"noSuchDefinition"};
+    issues.clear();
+    ValidateItemOptionFilesAsWritten(files, issues);
+    CHECK(std::ranges::any_of(issues,
+                              [](const ItemDataIssue& issue)
+                              {
+                                  return issue.severity == ItemDataIssueSeverity::Fatal &&
+                                         issue.source == "Options/OptionRules.json";
+                              }));
+}
+
+TEST_CASE("A change of the option files that renames a linked definition is undone and redone with the items' links "
+          "[data][items][editor][options]")
+{
+    TemporaryClientFolder folder;
+    folder.CopyShippedItems();
+    ClientDataScope client(folder.Directory());
+    ItemOptionsScope restoreOptions;
+    I18N::SetLocale("en");
+    std::string errorMessage;
+    REQUIRE(g_ItemDataHandler.Load(errorMessage));
+    g_ItemEdits.GetHistory().Clear();
+
+    const ItemOptionFiles before = g_ItemDatabase.GetOptions().GetFiles();
+    ItemOptionFiles renamed = before;
+    FindOptionDefinition(renamed, "luck").name = "fortune";
+    for (OptionRule& rule : renamed.rules)
+    {
+        std::ranges::replace(rule.options, std::string("luck"), std::string("fortune"));
+    }
+    const int krisType = MakeItemType(0, 0);
+    REQUIRE(g_ItemDatabase.Find(krisType) != nullptr);
+    ItemDefinition kris = *g_ItemDatabase.Find(krisType);
+    REQUIRE(std::ranges::find(kris.options, "luck") != kris.options.end());
+    std::ranges::replace(kris.options, std::string("luck"), std::string("fortune"));
+    const std::vector<ItemDefinition> relinked = {kris};
+    const auto krisLinks = [krisType](std::string_view name)
+    {
+        const std::vector<std::string>& links = g_ItemDatabase.Find(krisType)->options;
+        return std::ranges::find(links, name) != links.end();
+    };
+
+    g_ItemEdits.SetOptions("Rename luck", renamed, relinked);
+    CHECK(g_ItemDatabase.GetOptions().GetFiles() == renamed);
+    CHECK(krisLinks("fortune"));
+    CHECK(g_ItemDatabase.GetOptions().Find("fortune") != ItemOptionDatabase::NoDefinition);
+
+    REQUIRE(g_ItemEdits.Undo());
+    CHECK(g_ItemDatabase.GetOptions().GetFiles() == before);
+    CHECK(krisLinks("luck"));
+
+    REQUIRE(g_ItemEdits.Redo());
+    CHECK(g_ItemDatabase.GetOptions().GetFiles() == renamed);
+    CHECK(krisLinks("fortune"));
+    g_ItemEdits.GetHistory().Clear();
 }
 
 TEST_CASE("Save Items writes the item stat file when the editor changed it [data][items][editor]")

@@ -37,6 +37,7 @@
 #include <optional>
 #include <regex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -52,6 +53,9 @@ using MonsterRecorder::CreationScope;
 // Folders shipped whole: what a run without a window does not open (interface documents and their images, fonts),
 // every language, not only the one the run loads, and the renderer's look file.
 constexpr std::string_view WholeFolders[] = {"Data/Interface", "Data/Local", "Data/Render", "fonts"};
+// Files only the editor build reads (the option rules: ItemDataHandler's WithRules): the lists are the game's, so they
+// are the same whichever build writes or checks them.
+constexpr std::string_view EditorOnlyFiles[] = {"Data/Items/Options/OptionRules.json"};
 
 // The event states that make a map read other files, or spawn other models. LoadWorld reads some (the siege, Crywolf's
 // occupation) and resets the others, which the game then sets while the map is loaded.
@@ -427,6 +431,10 @@ Lists RecordLists()
             // The dragons MoveBoids sends over any map while the server runs an event.
             OpenMonsterModel(MONSTER_MODEL_DRAGON);
         });
+    for (const std::string_view file : EditorOnlyFiles)
+    {
+        lists.shared.erase(std::string(file));
+    }
     recorder.KeepAsShared();
     for (const std::string_view folder : WholeFolders)
     {
@@ -510,6 +518,31 @@ std::map<std::string, std::string> ListFiles(const Lists& lists)
     return files;
 }
 
+// Report just the changed entries, rather than dumping thousands of shared asset paths.
+void ReportListDifference(const std::string& stored, const std::string& expected)
+{
+    const auto lines = [](const std::string& text)
+    {
+        Files result;
+        std::istringstream input(text);
+        for (std::string line; std::getline(input, line);)
+            result.insert(std::move(line));
+        return result;
+    };
+    const Files storedLines = lines(stored);
+    const Files expectedLines = lines(expected);
+    for (const std::string& line : expectedLines)
+    {
+        if (!storedLines.contains(line))
+            MESSAGE("missing entry: " << line);
+    }
+    for (const std::string& line : storedLines)
+    {
+        if (!expectedLines.contains(line))
+            MESSAGE("unexpected entry: " << line);
+    }
+}
+
 // The file's text with plain line ends: a Windows checkout may turn them into CRLF.
 std::string ReadText(const fs::path& file)
 {
@@ -578,7 +611,10 @@ TEST_CASE("the per-map file lists name what the game reads at start-up, on each 
     for (const auto& [name, text] : expected)
     {
         INFO(name << " is out of date: run map_file_lists_tests with MU_WRITE_MAP_FILE_LISTS=1 to rewrite the lists");
-        const bool upToDate = ReadText(ListsFolder() / name) == text;
+        const std::string stored = ReadText(ListsFolder() / name);
+        const bool upToDate = stored == text;
+        if (!upToDate)
+            ReportListDifference(stored, text);
         CHECK(upToDate);
         onDisk.erase(name);
     }
