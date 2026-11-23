@@ -45,11 +45,17 @@ std::unique_ptr<DataCheckArea> CreateEffectCheckArea();
 std::unique_ptr<DataCheckArea> CreateModelFileCheckArea();
 // The buffs (Data/Buffs/Buffs.json) as the game reads them at start, with
 // their items checked against the item list as the item tools have it
-// (unsaved changes too); no tool edits them yet.
+// (unsaved changes too), the master skills' buff parts
+// (Data/Skills/MasterSkills.json) against those buffs and the skill tooltip's
+// buff texts (Data/Buffs/BuffTexts.json); no tool edits them yet.
 std::unique_ptr<DataCheckArea> CreateBuffCheckArea();
 // The sounds of map objects (Data/Maps/ObjectSounds.json) as the Map Editor
 // has them; a click opens the Map Editor.
 std::unique_ptr<DataCheckArea> CreateMapSoundCheckArea();
+// The warp list (Data/Maps/Warps.json) as the Warp List window has it (the
+// game's list, unsaved changes too), read back as the file would be, with its
+// items checked against the item list; a click opens the Warp List.
+std::unique_ptr<DataCheckArea> CreateWarpCheckArea();
 // The look profile and the light moods (Data/Render/Look.json; an old
 // Data/Maps/LightMood.json beside it is reported); a click opens the Dev Editor.
 std::unique_ptr<DataCheckArea> CreateLookCheckArea();
